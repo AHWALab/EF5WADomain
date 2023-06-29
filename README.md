@@ -10,6 +10,8 @@ Configuration of EF5 computational domain for West Africa. This repository inclu
 
 3) Pre-computed outputs from a simulation based on this set-up are included.
 
+4) Shapefile of countries included in the EF5 domain and raster with a mask of major basins.
+
 ## References
 
 Vergara, H., Kirstetter, P.E., Gourley, J.J., Flamig, Z.L., Hong, Y., Arthur, A. and Kolar, R., 2016. Estimating a-priori kinematic wave model parameters based on regionalization for flash flood forecasting in the Conterminous United States. Journal of Hydrology, 541, pp.421-433.
