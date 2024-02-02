@@ -1,13 +1,15 @@
 """
-Generic FLASH real-time model/subdomain execution script
-by Jorge A. Duarte G. - jorge.duarte@noaa.gov
-V.1.0 - March 20, 2020
+West Africa real-time model/subdomain execution script
+Contributors:
+Jorge A. Duarte G. - jorge.duarte@noaa.gov
+Humberto Vergara - humberto-vergaraarrieta@uiowa.edu
+V.1.0 - February 01, 2024
 
-This script consolidates the FLASH execution routines in a single script, while
+This script consolidates execution routines in a single script, while
 ingesting a "configuration file" from where a given model can be specified for a
 given domain. Please use this script and a configuration file as follows:
 
-    $> python run_realtime_oCONUS.py <configuration_file.py>
+    $> python run_ef5_realtime.py <configuration_file.py>
 
 Said configuration file should contain the each of its variables populated, as can be
 seen in the following example configuration file contents:
@@ -57,8 +59,6 @@ from email.mime.base import MIMEBase
 from email.mime.text import MIMEText
 from email import encoders
 from multiprocessing.pool import ThreadPool
-from swissmeteo_mod import Swissmeteo
-
 
 """
 Setup Environment Variables for Linux Shared Libraries and OpenMP Threads
@@ -79,7 +79,7 @@ def main(args):
 
     # Read the configuration file
     #config_file = __import__(args[1].replace('.py', ''))
-    import CREST_SWITZERLAND_CONFIG as config_file #Harcoded here since there is a problem importing the file given its full path
+    import westafrica1km_config as config_file
     domain = config_file.domain
     subdomain = config_file.subdomain
     systemModel = config_file.systemModel
@@ -87,18 +87,15 @@ def main(args):
     ef5Path = config_file.ef5Path
     precipArchive = config_file.precipArchive
     precipFolder = config_file.precipFolder
-    statesPathSub01 = config_file.statesPathSub01
-    statesPathSub02 = config_file.statesPathSub02
+    statesPath = config_file.statesPath
     modelStates = config_file.modelStates
     templatePath = config_file.templatePath
-    templateSub01 = config_file.templateSub01
-    templateSub02 = config_file.templateSub02
+    template = config_file.template
     DATA_ASSIMILATION = config_file.DATA_ASSIMILATION
     assimilationPath = config_file.assimilationPath
     assimilationLogs = config_file.assimilationLogs
     dataPath = config_file.dataPath
-    tmpOutputSub01 = config_file.tmpOutputSub01
-    tmpOutputSub02 = config_file.tmpOutputSub02
+    tmpOutput = config_file.tmpOutput
     SEND_ALERTS = config_file.SEND_ALERTS
     smtp_server = config_file.smtp_server
     smtp_port = config_file.smtp_port
@@ -113,7 +110,7 @@ def main(args):
     thread_th = config_file.thread_th
     distance_th = config_file.distance_th
     Npixels_th = config_file.Npixels_th
-
+    copyToWeb = config_file.copyToWeb
 
     # Figure out the timing for running the current timestep
     currentTime = dt.utcnow()
@@ -134,7 +131,7 @@ def main(args):
         sys.exit()
 
     # Configure the system to run once every hour
-    # Start the simulation using QPEs from 60min ago
+    # Start the simulation using QPEs from 4-6 hours ago
     systemStartTime = currentTime - timedelta(minutes=60)
     # Save states for the current run with the current time step's timestamp
     systemStateEndTime = currentTime
@@ -148,7 +145,6 @@ def main(args):
     # Configure failure-tolerance for missing QPE timesteps
     # Only check for states as far as we have QPFs (6 hours)
     failTime = currentTime - timedelta(hours=6)
-
 
     try:
         # Clean up old QPE files from GeoTIFF archive (older than 6 hours)
@@ -178,34 +174,24 @@ def main(args):
 
     # Check to see if all the states for the current time step are available: ["crest_SM", "kwr_IR", "kwr_pCQ", "kwr_pOQ"]
     # If not then search for previous ones
-    foundAllStatesSub01 = False
-    foundAllStatesSub02 = False
+    foundAllStates = False
     realSystemStartTime = systemStartTime
 
     # Iterate over all necessary states and check if they're available for the current run
     # Only go back up to 6 hours, in 10min decrements
-    while foundAllStatesSub01 == False and realSystemStartTime > failTime:
-        foundAllStatesSub01 = True
+    while foundAllStates == False and realSystemStartTime > failTime:
+        foundAllStates = True
         for state in modelStates:
-            if is_non_zero_file(statesPathSub01 + state + "_" + realSystemStartTime.strftime("%Y%m%d_%H%M") + ".tif") == False:
-                print('Missing start state: ' + statesPathSub01 + state + '_' + realSystemStartTime.strftime("%Y%m%d_%H%M") + '.tif')
-                foundAllStatesSub01 = False
-        if foundAllStatesSub01 == False:
-            realSystemStartTime = realSystemStartTime - timedelta(minutes=10)
-
-    while foundAllStatesSub02 == False and realSystemStartTime > failTime:
-        foundAllStatesSub02 = True
-        for state in modelStates:
-            if is_non_zero_file(statesPathSub02 + state + "_" + realSystemStartTime.strftime("%Y%m%d_%H%M") + ".tif") == False:
-                print('Missing start state: ' + statesPathSub02 + state + '_' + realSystemStartTime.strftime("%Y%m%d_%H%M") + '.tif')
-                foundAllStatesSub02 = False
-        if foundAllStatesSub02 == False:
+            if is_non_zero_file(statesPath + state + "_" + realSystemStartTime.strftime("%Y%m%d_%H%M") + ".tif") == False:
+                print('Missing start state: ' + statesPath + state + '_' + realSystemStartTime.strftime("%Y%m%d_%H%M") + '.tif')
+                foundAllStates = False
+        if foundAllStates == False:
             realSystemStartTime = realSystemStartTime - timedelta(minutes=10)
 
     # If no states are found for the last 6 hours, assume that no previous states exist, and
     # use the current time step as the starting point for a "cold" start.
     # If notifications are enabled, notify all recipients about not finding states.
-    if not foundAllStatesSub01 or not foundAllStatesSub02:
+    if not foundAllStates:
         if SEND_ALERTS:
             subject = systemName + ' failed for ' + currentTime.strftime("%Y%m%d_%H%M")
             message = 'Missing states from ' + realSystemStartTime.strftime("%Y%m%d_%H%M") + ' to ' + systemStartTime.strftime("%Y%m%d_%H%M") + '. Starting model with cold states.'
@@ -228,22 +214,20 @@ def main(args):
 
     # Clean up "Hot" folders
     # Delete the previously existing "Hot" folders, ignore error if it doesn't exist
-    rmtree(tmpOutputSub01, ignore_errors=1)
-    rmtree(tmpOutputSub02, ignore_errors=1)
+    rmtree(tmpOutput, ignore_errors=1)
     rmtree(dataPath, ignore_errors=1)
     # Create the "Hot" folder for the current run
-    mkdir_p(tmpOutputSub01)
-    mkdir_p(tmpOutputSub02)
+    mkdir_p(tmpOutput)
     mkdir_p(dataPath)
 
     # Create the control files for both subdomains
     # Define the control file path to create
-    controlFileSub01 = tmpOutputSub01 + "flash_" + subdomain + "_" + systemModel + "_sub01.txt"
-    fOut = open(controlFileSub01, "w")
+    controlFile = tmpOutput + "flash_" + subdomain + "_" + systemModel + ".txt"
+    fOut = open(controlFile, "w")
 
     # Create a control file with updated fields
-    for line in open(templatePath + templateSub01).readlines():
-        line = re.sub('{OUTPUTPATH}', tmpOutputSub01, line)
+    for line in open(templatePath + template).readlines():
+        line = re.sub('{OUTPUTPATH}', tmpOutput, line)
         line = re.sub('{TIMEBEGIN}', realSystemStartTime.strftime('%Y%m%d%H%M'), line)
         line = re.sub('{TIMEBEGINLR}', systemStartLRTime.strftime('%Y%m%d%H%M'), line)
         line = re.sub('{TIMEWARMEND}', systemWarmEndTime.strftime('%Y%m%d%H%M'), line)
@@ -260,188 +244,103 @@ def main(args):
         for log in assimilationLogs:
             if is_non_zero_file(assimilationPath + log) == True:
                 remove(assimilationPath + log)
-
-    # Define each control file path to create
-    controlFileSub02 = tmpOutputSub02 + "flash_" + subdomain + "_" + systemModel + "_sub02.txt"
-    fOut = open(controlFileSub02, "w")
-
-    # Create a control file with updated fields from each template
-    for line in open(templatePath + templateSub02).readlines():
-        line = re.sub('{OUTPUTPATH}', tmpOutputSub02, line)
-        line = re.sub('{TIMEBEGIN}', realSystemStartTime.strftime('%Y%m%d%H%M'), line)
-        line = re.sub('{TIMEBEGINLR}', systemStartLRTime.strftime('%Y%m%d%H%M'), line)
-        line = re.sub('{TIMEWARMEND}', systemWarmEndTime.strftime('%Y%m%d%H%M'), line)
-        line = re.sub('{TIMESTATE}', systemStateEndTime.strftime('%Y%m%d%H%M'), line)
-        line = re.sub('{TIMEEND}', systemEndTime.strftime('%Y%m%d%H%M'), line)
-        line = re.sub('{SYSTEMMODEL}', systemModel, line)
-        fOut.write(line)
-    fOut.close()
-
-    # If data assimilation if being used for CREST, clean up previous data assimilation logs
-    #TODO: Verify against EF5 control file - when this functionality is needed
-    if DATA_ASSIMILATION and systemModel=="crest":
-        # Data assimilation output files
-        for log in assimilationLogs:
-            if is_non_zero_file(assimilationPath + log) == True:
-                remove(assimilationPath + log)
-
 
     # Run EF5 simulations
     # Prepare function arguments for multiprocess invovation of run_EF5()
-    argumentsSub01 = [ef5Path, tmpOutputSub01, controlFileSub01, "ef5_sub01.log"]
-    argumentsSub02 = [ef5Path, tmpOutputSub02, controlFileSub02, "ef5_sub02.log"]
+    arguments = [ef5Path, tmpOutput, controlFile, "ef5.log"]
 
     # Create a thread pool of the same size as the number of control files
-    tp = ThreadPool(2)
+    tp = ThreadPool(1)
     # Run each EF5 instance asynchronously using independent threads
-    tp.apply_async(run_EF5, argumentsSub01)
-    tp.apply_async(run_EF5, argumentsSub02)
+    tp.apply_async(run_EF5, arguments)
 
     # Wait for both processes to finish and collapse the thread pool
     tp.close()
     tp.join()
 
-    # Merge all partial outputs into a single geotiff and write them out into the dataPath
-    # gdal_merge.py -a_nodata -9999 -co COMPRESS=Deflate -o OUTPUTFILE.tif SUB01_FILE.tif SUB02_FILE.tif
-    #partial_files_sub01 = os.listdir(tmpOutputSub01)
-    #partial_files_sub02 = os.listdir(tmpOutputSub02)
+    # #Post-Processing: Computing probability of exceeding a threshold
+    # tp = ThreadPool(10)
+    # forecastTime = systemStartLRTime
+    # while forecastTime <= systemEndTime:
+    #     #Prepare package to pass to every worker
+    #     current_q_forecast = dataPath + "q." + forecastTime.strftime('%Y%m%d_%H%M') + ".crest.tif"
 
-    #for file1, file2 in zip(partial_files_sub01, partial_files_sub02):
-    #    if file1 == file2 and file1 != "results.json" and file1 != "ef5_sub01.log":
-    #        subprocess.call("/home/ec2-user/anaconda3/bin/gdal_merge.py -a_nodata -9999 -co COMPRESS=Deflate -o " + dataPath + file1 + " " + tmpOutputSub01 + file1 + " " + tmpOutputSub02 + file2, shell=True)
+    #     #Name of probability CSV file
+    #     output_rhbti_forecast = dataPath + systemStartLRTime.strftime('%H%M00-%Y%m%d-') + forecastTime.strftime('%H%M00-%Y%m%d-') + "CRESTMETSWISS-RHBTIPROBABILITY-" + MODEL_RES + "-GRAUBUNDEN.csv.gz"
+    #     #Name of unit Q CSV file
+    #     unitq_name = dataPath + systemStartLRTime.strftime('%H%M00-%Y%m%d-') + forecastTime.strftime('%H%M00-%Y%m%d-') + "CRESTMETSWISS-UNITQ-" + MODEL_RES + "-GRAUBUNDEN.csv.gz"
 
-    # Merge all partial outputs into a single geotiff and write them out into the dataPath
-    tp = ThreadPool(10)
+    #     #Prepare arguments to pass
+    #     argumentsPacket = [current_q_forecast, dataPath, output_rhbti_forecast, unitq_name]
 
-    subdomain_list_of_folders = [tmpOutputSub01, tmpOutputSub02]
+    #     #Send argument list for processing
+    #     tp.apply_async(postprocess_EF5, argumentsPacket)
 
-    #First merge forecast integrated files
-    fcst_integrated_files = ["maxunitq." + systemWarmEndTime.strftime('%Y%m%d.%H%M') + "00.tif", "qpfaccum." + systemWarmEndTime.strftime('%Y%m%d.%H%M') + "00.tif", "qpeaccum." + systemWarmEndTime.strftime('%Y%m%d.%H%M') + "00.tif", "maxq." + systemWarmEndTime.strftime('%Y%m%d.%H%M') + "00.tif"]
-    for fcst_file in fcst_integrated_files:
-        argumentsPacket = [dataPath, subdomain_list_of_folders, fcst_file]
+    #     #Advance forecastTime variable by 5 minutes
+    #     forecastTime = forecastTime + timedelta(minutes=5)
 
-        #Send argument list for processing
-        tp.apply_async(merge_EF5, argumentsPacket)
+    # # Wait for both processes to finish and collapse the thread pool
+    # tp.close()
+    # tp.join()
 
-    #Now merge each Q grid at every time step
-    forecastTime = systemStartLRTime
-    while forecastTime <= systemEndTime:
-        current_q_file = "q." + forecastTime.strftime('%Y%m%d_%H%M') + ".crest.tif"
+    # # Move product files to permanent storage
+    # product_file_list = glob.glob(dataPath + "*.csv.gz")
 
-        argumentsPacket = [dataPath, subdomain_list_of_folders, current_q_file]
+    # for prod_file in product_file_list:
+    #     subprocess.call("/usr/bin/cp " + prod_file + " " + product_Path, shell=True)
 
-        #Send argument list for processing
-        tp.apply_async(merge_EF5, argumentsPacket)
+    # # Additional processing for web-display
+    # # Convert CSV probability file to GeoTIFF
+    # subprocess.call("/home/ec2-user/anaconda3/bin/python /home/ec2-user/Scripts/post_processing/GenForecastTIFF.py " + product_Path + systemStartLRTime.strftime('%H%M00-%Y%m%d-') + systemStartLRTime.strftime('%H%M00-%Y%m%d-') + "CRESTMETSWISS-RHBTIPROBABILITY-" + MODEL_RES + "-GRAUBUNDEN.csv.gz " + dataPath + systemStartLRTime.strftime('%H%M00-%Y%m%d-') + "CRESTMETSWISS-RHBTI-" + MODEL_RES + ".tif " + SampleTIFF, shell=True)
 
-        #Advance forecastTime variable by 5 minutes
-        forecastTime = forecastTime + timedelta(minutes=5)
+    # # Compute probability for Max Q
+    # #Prepare package to pass to every worker
+    # maxq_forecast = dataPath + "maxq." + systemStartLRTime.strftime('%Y%m%d.%H%M') + "00.tif"
+    # #Name of probability CSV file
+    # output_maxq_rhbti_forecast = dataPath + systemStartLRTime.strftime('%H%M00-%Y%m%d-') + "CRESTMETSWISS-MAXRHBTIPROBABILITY-" + MODEL_RES + "-GRAUBUNDEN.csv.gz"
+    # #Name of unit Q CSV file
+    # dummy_unitq_name = dataPath + "CRESTMETSWISS-MAXUNITQ.csv.gz"
+    # #Post-process Max Q
+    # postprocess_EF5(maxq_forecast, dataPath, output_maxq_rhbti_forecast, dummy_unitq_name)
+    # # Convert CSV probability file to GeoTIFF
+    # subprocess.call("/home/ec2-user/anaconda3/bin/python /home/ec2-user/Scripts/post_processing/GenForecastTIFF.py " + output_maxq_rhbti_forecast + " " + dataPath + systemStartLRTime.strftime('%H%M00-%Y%m%d-') + "CRESTMETSWISS-MAXQRHBTI-" + MODEL_RES + ".tif " + SampleTIFF, shell=True)
+    # # Derive Threat Polygons from MAXQRHBTI GeoTIFF
+    # sp.call("/home/ec2-user/anaconda3/bin/python /home/ec2-user/Scripts/post_processing/createEventObjects.py " + dataPath + systemStartLRTime.strftime('%H%M00-%Y%m%d-') + "CRESTMETSWISS-MAXQRHBTI-" + MODEL_RES + ".tif " + str(thread_th) + " " + str(distance_th) + " " + str(Npixels_th) + " " + output_file + " " + geoFile + " shp", shell=True)
+    # #kml_output_file = csv_folder + "joint." + dateStamp.strftime('%Y%m%d.%H%M') + "00.kml"
+    # #sp.call('ogr2ogr -f KML ' + output_file + ' ' + input_file + ' -dialect sqlite -sql "select ST_union(Geometry) from ' + var_name + '"', shell=True)
 
-    # Wait for both processes to finish and collapse the thread pool
-    tp.close()
-    tp.join()
-
-    #Post-Processing: Computing probability of an impact over RhB Track
-    # Create a thread pool of the same size as the number of control files
-    tp = ThreadPool(10)
-    forecastTime = systemStartLRTime
-    while forecastTime <= systemEndTime:
-        #Prepare package to pass to every worker
-        current_q_forecast = dataPath + "q." + forecastTime.strftime('%Y%m%d_%H%M') + ".crest.tif"
-
-        #Name of probability CSV file
-        output_rhbti_forecast = dataPath + systemStartLRTime.strftime('%H%M00-%Y%m%d-') + forecastTime.strftime('%H%M00-%Y%m%d-') + "CRESTMETSWISS-RHBTIPROBABILITY-" + MODEL_RES + "-GRAUBUNDEN.csv.gz"
-        #Name of unit Q CSV file
-        unitq_name = dataPath + systemStartLRTime.strftime('%H%M00-%Y%m%d-') + forecastTime.strftime('%H%M00-%Y%m%d-') + "CRESTMETSWISS-UNITQ-" + MODEL_RES + "-GRAUBUNDEN.csv.gz"
-
-        #Prepare arguments to pass
-        argumentsPacket = [current_q_forecast, dataPath, output_rhbti_forecast, unitq_name]
-
-        #Send argument list for processing
-        tp.apply_async(postprocess_EF5, argumentsPacket)
-
-        #Advance forecastTime variable by 5 minutes
-        forecastTime = forecastTime + timedelta(minutes=5)
-
-    # Wait for both processes to finish and collapse the thread pool
-    tp.close()
-    tp.join()
-
-    # Move product files to permanent storage
-    product_file_list = glob.glob(dataPath + "*.csv.gz")
-
-    for prod_file in product_file_list:
-        subprocess.call("/usr/bin/cp " + prod_file + " " + product_Path, shell=True)
-
-    # Additional processing for web-display
-    # Convert CSV probability file to GeoTIFF
-    subprocess.call("/home/ec2-user/anaconda3/bin/python /home/ec2-user/Scripts/post_processing/GenForecastTIFF.py " + product_Path + systemStartLRTime.strftime('%H%M00-%Y%m%d-') + systemStartLRTime.strftime('%H%M00-%Y%m%d-') + "CRESTMETSWISS-RHBTIPROBABILITY-" + MODEL_RES + "-GRAUBUNDEN.csv.gz " + dataPath + systemStartLRTime.strftime('%H%M00-%Y%m%d-') + "CRESTMETSWISS-RHBTI-" + MODEL_RES + ".tif " + SampleTIFF, shell=True)
-
-    # Compute probability for Max Q
-    #Prepare package to pass to every worker
-    maxq_forecast = dataPath + "maxq." + systemStartLRTime.strftime('%Y%m%d.%H%M') + "00.tif"
-    #Name of probability CSV file
-    output_maxq_rhbti_forecast = dataPath + systemStartLRTime.strftime('%H%M00-%Y%m%d-') + "CRESTMETSWISS-MAXRHBTIPROBABILITY-" + MODEL_RES + "-GRAUBUNDEN.csv.gz"
-    #Name of unit Q CSV file
-    dummy_unitq_name = dataPath + "CRESTMETSWISS-MAXUNITQ.csv.gz"
-    #Post-process Max Q
-    postprocess_EF5(maxq_forecast, dataPath, output_maxq_rhbti_forecast, dummy_unitq_name)
-    # Convert CSV probability file to GeoTIFF
-    subprocess.call("/home/ec2-user/anaconda3/bin/python /home/ec2-user/Scripts/post_processing/GenForecastTIFF.py " + output_maxq_rhbti_forecast + " " + dataPath + systemStartLRTime.strftime('%H%M00-%Y%m%d-') + "CRESTMETSWISS-MAXQRHBTI-" + MODEL_RES + ".tif " + SampleTIFF, shell=True)
-    # Derive Threat Polygons from MAXQRHBTI GeoTIFF
-    sp.call("/home/ec2-user/anaconda3/bin/python /home/ec2-user/Scripts/post_processing/createEventObjects.py " + dataPath + systemStartLRTime.strftime('%H%M00-%Y%m%d-') + "CRESTMETSWISS-MAXQRHBTI-" + MODEL_RES + ".tif " + str(thread_th) + " " + str(distance_th) + " " + str(Npixels_th) + " " + output_file + " " + geoFile + " shp", shell=True)
-    #kml_output_file = csv_folder + "joint." + dateStamp.strftime('%Y%m%d.%H%M') + "00.kml"
-    #sp.call('ogr2ogr -f KML ' + output_file + ' ' + input_file + ' -dialect sqlite -sql "select ST_union(Geometry) from ' + var_name + '"', shell=True)
-
-    # Move GeoTIFFs to permanent storage for web-display
-    copyToWeb = True
-    if copyToWeb == True:
-        #Copy maxunitq file to permanent folder
-        subprocess.call("/usr/bin/cp " + dataPath + "maxunitq." + systemWarmEndTime.strftime('%Y%m%d.%H%M') + "00.tif " + product_Path + currentTime.strftime('%H%M00-%Y%m%d-') + "CRESTMETSWISS-MAXUNITSTREAMFLOW-" + MODEL_RES + ".tif", shell=True)
-        #Copy qpfaccum file to permanent folder
-        subprocess.call("/usr/bin/cp " + dataPath + "qpfaccum." + systemWarmEndTime.strftime('%Y%m%d.%H%M') + "00.tif " + product_Path + currentTime.strftime('%H%M00-%Y%m%d-') + "CRESTMETSWISS-QPFACCUM-" + MODEL_RES + ".tif", shell=True)
-        #Copy qpeaccum file to permanent folder
-        subprocess.call("/usr/bin/cp " + dataPath + "qpeaccum." + systemWarmEndTime.strftime('%Y%m%d.%H%M') + "00.tif " + product_Path + currentTime.strftime('%H%M00-%Y%m%d-') + "CRESTMETSWISS-QPEACCUM-" + MODEL_RES + ".tif", shell=True)
-        #Copy maxq file to permanent folder
-        subprocess.call("/usr/bin/cp " + dataPath + "maxq." + systemWarmEndTime.strftime('%Y%m%d.%H%M') + "00.tif " + product_Path + currentTime.strftime('%H%M00-%Y%m%d-') + "CRESTMETSWISS-MAXSTREAMFLOW-" + MODEL_RES + ".tif", shell=True)
-        #Copy maxq RhbTI probability file to permanent folder
-        subprocess.call("/usr/bin/cp " + dataPath + systemStartLRTime.strftime('%H%M00-%Y%m%d-') + "CRESTMETSWISS-MAXQRHBTI-" + MODEL_RES + ".tif " + product_Path, shell=True)
-        #Copy RhbTI probability file at analysis time
-        subprocess.call("/usr/bin/cp " + dataPath + systemStartLRTime.strftime('%H%M00-%Y%m%d-') + "CRESTMETSWISS-RHBTI-" + MODEL_RES + ".tif " + product_Path, shell=True)
+    # # Move GeoTIFFs to permanent storage for web-display
+    # if copyToWeb == True:
+    #     #Copy maxunitq file to permanent folder
+    #     subprocess.call("/usr/bin/cp " + dataPath + "maxunitq." + systemWarmEndTime.strftime('%Y%m%d.%H%M') + "00.tif " + product_Path + currentTime.strftime('%H%M00-%Y%m%d-') + "CRESTMETSWISS-MAXUNITSTREAMFLOW-" + MODEL_RES + ".tif", shell=True)
+    #     #Copy qpfaccum file to permanent folder
+    #     subprocess.call("/usr/bin/cp " + dataPath + "qpfaccum." + systemWarmEndTime.strftime('%Y%m%d.%H%M') + "00.tif " + product_Path + currentTime.strftime('%H%M00-%Y%m%d-') + "CRESTMETSWISS-QPFACCUM-" + MODEL_RES + ".tif", shell=True)
+    #     #Copy qpeaccum file to permanent folder
+    #     subprocess.call("/usr/bin/cp " + dataPath + "qpeaccum." + systemWarmEndTime.strftime('%Y%m%d.%H%M') + "00.tif " + product_Path + currentTime.strftime('%H%M00-%Y%m%d-') + "CRESTMETSWISS-QPEACCUM-" + MODEL_RES + ".tif", shell=True)
+    #     #Copy maxq file to permanent folder
+    #     subprocess.call("/usr/bin/cp " + dataPath + "maxq." + systemWarmEndTime.strftime('%Y%m%d.%H%M') + "00.tif " + product_Path + currentTime.strftime('%H%M00-%Y%m%d-') + "CRESTMETSWISS-MAXSTREAMFLOW-" + MODEL_RES + ".tif", shell=True)
+    #     #Copy maxq RhbTI probability file to permanent folder
+    #     subprocess.call("/usr/bin/cp " + dataPath + systemStartLRTime.strftime('%H%M00-%Y%m%d-') + "CRESTMETSWISS-MAXQRHBTI-" + MODEL_RES + ".tif " + product_Path, shell=True)
+    #     #Copy RhbTI probability file at analysis time
+    #     subprocess.call("/usr/bin/cp " + dataPath + systemStartLRTime.strftime('%H%M00-%Y%m%d-') + "CRESTMETSWISS-RHBTI-" + MODEL_RES + ".tif " + product_Path, shell=True)
 
     # Check for missing states if ef5 crashed/did not run
-    foundAllStatesSub01 = True
+    foundAllStates = True
     for state in modelStates:
-        if is_non_zero_file(statesPathSub01 + state + "_" + systemStateEndTime.strftime("%Y%m%d_%H%M") + ".tif") == False:
-            print('Missing state: ' + statesPathSub01 + state + '_' + systemStateEndTime.strftime("%Y%m%d_%H%M") + '.tif')
-            if foundAllStatesSub01 == True:
-                foundAllStatesSub01 = False
+        if is_non_zero_file(statesPath + state + "_" + systemStateEndTime.strftime("%Y%m%d_%H%M") + ".tif") == False:
+            print('Missing state: ' + statesPath + state + '_' + systemStateEndTime.strftime("%Y%m%d_%H%M") + '.tif')
+            if foundAllStates == True:
+                foundAllStates = False
                 if SEND_ALERTS:
                     subject = systemName + ' failed for ' + currentTime.strftime("%Y%m%d_%H%M")
-                    message = 'Missing state: ' + statesPathSub01 + state + "_" + systemStateEndTime.strftime("%Y%m%d_%H%M") + ".tif"
+                    message = 'Missing state: ' + statesPath + state + "_" + systemStateEndTime.strftime("%Y%m%d_%H%M") + ".tif"
                     for recipient in alert_recipients:
                         send_mail(smtp_server, smtp_port, account_address, account_password, alert_sender, recipient, subject, message)
 
     # Only delete previous states if we have all the current ones
-    if foundAllStatesSub01 == True:
+    if foundAllStates == True:
         for state in modelStates:
-            remove(statesPathSub01 + state + "_" + realSystemStartTime.strftime("%Y%m%d_%H%M") + ".tif")
-
-    foundAllStatesSub02 = True
-    for state in modelStates:
-        if is_non_zero_file(statesPathSub02 + state + "_" + systemStateEndTime.strftime("%Y%m%d_%H%M") + ".tif") == False:
-            print('Missing state: ' + statesPathSub02 + state + '_' + systemStateEndTime.strftime("%Y%m%d_%H%M") + '.tif')
-            if foundAllStatesSub02 == True:
-                foundAllStatesSub02 = False
-                if SEND_ALERTS:
-                    subject = systemName + ' failed for ' + currentTime.strftime("%Y%m%d_%H%M")
-                    message = 'Missing state: ' + statesPathSub02 + state + "_" + systemStateEndTime.strftime("%Y%m%d_%H%M") + ".tif"
-                    for recipient in alert_recipients:
-                        send_mail(smtp_server, smtp_port, account_address, account_password, alert_sender, recipient, subject, message)
-
-    # Only delete previous states if we have all the current ones
-    if foundAllStatesSub02 == True:
-        for state in modelStates:
-            remove(statesPathSub02 + state + "_" + realSystemStartTime.strftime("%Y%m%d_%H%M") + ".tif")
+            remove(statesPath + state + "_" + realSystemStartTime.strftime("%Y%m%d_%H%M") + ".tif")
 
     finishTime = dt.utcnow()
     print("*** At " + finishTime.strftime("%Y%m%d_%H%M") + ": Successfully completed real-time run cycle started at " + currentTime.strftime("%Y%m%d_%H%M") + " ***")
