@@ -534,14 +534,7 @@ def cleanup_precip(current_datetime, max_datetime, geotiff_precip_path):
 
 
 def get_new_precip(current_timestamp, netcdf_feed_path, geotiff_precip_path):
-    """Function that brings new real-time precipitation into the GeoTIFF precip folder
-
-    Based on Jeremy Stemo's API:
-        from swissmeteo import Swissmeteo
-        sm = SwissMeteo(“/directory/of/archive”)
-        sm.latest_netcdf_timestep()
-        sm.is_netcdf_available(timestep)
-        sm.write_geotiffs(end_timestep, dest_dir_path, prev_qpe_count=3)
+    """Function that brings latest IMERG precipitation file into the GeoTIFF precip folder
 
     Arguments:
         current_timestamp {datetime} -- current time step's timestamp
