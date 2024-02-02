@@ -111,16 +111,24 @@ def main(args):
     distance_th = config_file.distance_th
     Npixels_th = config_file.Npixels_th
     copyToWeb = config_file.copyToWeb
+    HindCastMode = config_file.HindCastMode
+    HindCastDate = config_file.HindCastDate
 
+    # Real-time mode or Hindcast mode
     # Figure out the timing for running the current timestep
-    currentTime = dt.utcnow()
+    if HindCastMode == True:
+        currentTime = dt.strptime(HindCastDate)
+        print("*** Starting hindcast run cycle at " + currentTime.strftime("%Y%m%d_%H%M") + " ***")        
+    else:
+        currentTime = dt.utcnow()
+        print("*** Starting real-time run cycle at " + currentTime.strftime("%Y%m%d_%H%M") + " ***")
 
-    print("*** Starting real-time run cycle at " + currentTime.strftime("%Y%m%d_%H%M") + " ***")
+    sys.exit
 
     # Round down the current minutess to the nearest 10min increment in the past
-    min10 = int(np.floor(currentTime.minute / 10.0) * 10)
+    min30 = int(np.floor(currentTime.minute / 10.0) * 10)
     # Use the rounded down minutes as the timestamp for the current time step
-    currentTime = currentTime.replace(minute=min10,second=0,microsecond=0)
+    currentTime = currentTime.replace(minute=min30,second=0,microsecond=0)
 
     # If Get a lock on the current thread
     if not get_lock(systemModel+domain.lower()+subdomain.lower()):
