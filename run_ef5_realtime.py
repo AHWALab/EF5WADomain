@@ -191,7 +191,7 @@ def main(args):
                 print('Missing start state: ' + statesPath + state + '_' + realSystemStartTime.strftime("%Y%m%d_%H%M") + '.tif')
                 foundAllStates = False
         if foundAllStates == False:
-            realSystemStartTime = realSystemStartTime - timedelta(minutes=10)
+            realSystemStartTime = realSystemStartTime - timedelta(minutes=30)
 
     # If no states are found for the last 6 hours, assume that no previous states exist, and
     # use the current time step as the starting point for a "cold" start.

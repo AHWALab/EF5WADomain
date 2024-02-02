@@ -23,4 +23,4 @@ alert_sender = "Real Time Model Alert" # can also be the same as account_address
 alert_recipients = ["fixer1@company.com", "fixer2@company.com", "panic@company.com",...]
 copyToWeb = False
 HindCastMode = True
-HindCastDate = "2019-06-04 06:00" #"%Y-%m-%d %H:%M"
+HindCastDate = "2019-06-04 12:00" #"%Y-%m-%d %H:%M"
