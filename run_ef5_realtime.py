@@ -85,12 +85,11 @@ def main(args):
     systemModel = config_file.systemModel
     systemName = config_file.systemName
     ef5Path = config_file.ef5Path
-    precipArchive = config_file.precipArchive
     precipFolder = config_file.precipFolder
     statesPath = config_file.statesPath
     modelStates = config_file.modelStates
     templatePath = config_file.templatePath
-    template = config_file.template
+    template = config_file.templates
     DATA_ASSIMILATION = config_file.DATA_ASSIMILATION
     assimilationPath = config_file.assimilationPath
     assimilationLogs = config_file.assimilationLogs
@@ -104,12 +103,12 @@ def main(args):
     alert_sender = config_file.alert_sender
     alert_recipients = config_file.alert_recipients
     MODEL_RES = config_file.model_resolution
-    SampleTIFF = config_file.sample_geotiff
-    product_Path = config_file.product_Path
+    # SampleTIFF = config_file.sample_geotiff
+    # product_Path = config_file.product_Path
     geoFile = "/home/ec2-user/Scripts/post_processing/georef_file.txt"
-    thread_th = config_file.thread_th
-    distance_th = config_file.distance_th
-    Npixels_th = config_file.Npixels_th
+    # thread_th = config_file.thread_th
+    # distance_th = config_file.distance_th
+    # Npixels_th = config_file.Npixels_th
     copyToWeb = config_file.copyToWeb
     HindCastMode = config_file.HindCastMode
     HindCastDate = config_file.HindCastDate
@@ -117,13 +116,11 @@ def main(args):
     # Real-time mode or Hindcast mode
     # Figure out the timing for running the current timestep
     if HindCastMode == True:
-        currentTime = dt.strptime(HindCastDate)
+        currentTime = dt.strptime(HindCastDate, "%Y-%m-%d %H:%M")
         print("*** Starting hindcast run cycle at " + currentTime.strftime("%Y%m%d_%H%M") + " ***")        
     else:
         currentTime = dt.utcnow()
         print("*** Starting real-time run cycle at " + currentTime.strftime("%Y%m%d_%H%M") + " ***")
-
-    sys.exit
 
     # Round down the current minutess to the nearest 10min increment in the past
     min30 = int(np.floor(currentTime.minute / 10.0) * 10)
