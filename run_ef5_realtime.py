@@ -123,7 +123,7 @@ def main(args):
         print("*** Starting real-time run cycle at " + currentTime.strftime("%Y%m%d_%H%M") + " ***")
 
     # Round down the current minutess to the nearest 10min increment in the past
-    min30 = int(np.floor(currentTime.minute / 10.0) * 10)
+    min30 = int(np.floor(currentTime.minute / 30.0) * 30)
     # Use the rounded down minutes as the timestamp for the current time step
     currentTime = currentTime.replace(minute=min30,second=0,microsecond=0)
 
@@ -137,11 +137,11 @@ def main(args):
 
     # Configure the system to run once every hour
     # Start the simulation using QPEs from 4-6 hours ago
-    systemStartTime = currentTime - timedelta(minutes=60)
+    systemStartTime = currentTime - timedelta(minutes=270)
     # Save states for the current run with the current time step's timestamp
-    systemStateEndTime = currentTime
+    systemStateEndTime = currentTime - timedelta(minutes=240)
     # Run warm up using the last hour of data until the current time step
-    systemWarmEndTime = currentTime
+    systemWarmEndTime = currentTime - timedelta(minutes=240)
     # Setup the simulation forecast starting point as the current timestemp
     systemStartLRTime = currentTime
     # Run simulation for 360min (6 hours) into the future using the 72 QPFs (5minx72=6h)
