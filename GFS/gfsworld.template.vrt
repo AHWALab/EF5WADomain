@@ -1,0 +1,34 @@
+<VRTDataset rasterXSize="1440" rasterYSize="721">
+  <SRS>GEOGCS["Coordinate System imported from GRIB file",DATUM["unknown",SPHEROID["Sphere",6371229,0]],PRIMEM["Greenwich",0],UNIT["degree",0.0174532925199433]]</SRS>
+  <GeoTransform> -180.12500000000000000e+00,  2.5000000000000000e-01,  0.0000000000000000e+00,  9.0125000000000000e+01,  0.0000000000000000e+00, -2.5000000000000000e-01</GeoTransform>
+  <VRTRasterBand dataType="Float64" band="1">
+    <Metadata>
+      <MDI key="GRIB_COMMENT">{GRIB_COMMENT}</MDI>
+      <MDI key="GRIB_DISCIPLINE">{GRIB_DISCIPLINE}</MDI>
+      <MDI key="GRIB_ELEMENT">{GRIB_ELEMENT}</MDI>
+      <MDI key="GRIB_FORECAST_SECONDS">{GRIB_FORECAST_SECONDS}</MDI>
+      <MDI key="GRIB_IDS">{GRIB_IDS}</MDI>
+      <MDI key="GRIB_PDS_PDTN">{GRIB_PDS_PDTN}</MDI>
+      <MDI key="GRIB_PDS_TEMPLATE_ASSEMBLED_VALUES">{GRIB_PDS_TEMPLATE_ASSEMBLED_VALUES}</MDI>
+      <MDI key="GRIB_PDS_TEMPLATE_NUMBERS">{GRIB_PDS_TEMPLATE_NUMBERS}</MDI>
+      <MDI key="GRIB_REF_TIME">{GRIB_REF_TIME}</MDI>
+      <MDI key="GRIB_SHORT_NAME">{GRIB_SHORT_NAME}</MDI>
+      <MDI key="GRIB_UNIT">{GRIB_UNIT}</MDI>
+      <MDI key="GRIB_VALID_TIME">{GRIB_VALID_TIME}</MDI>
+    </Metadata>
+    <Description>{DESCRIPTION}</Description>
+    <ColorInterp>Gray</ColorInterp>
+    <SimpleSource>
+      <SourceFilename relativeToVRT="1">{GTIFF}</SourceFilename>
+      <SourceBand>1</SourceBand>
+      <SrcRect xOff="0" yOff="0" xSize="720" ySize="721" />
+      <DstRect xOff="720" yOff="0" xSize="720" ySize="721" />
+    </SimpleSource>
+    <SimpleSource>
+      <SourceFilename relativeToVRT="1">{GTIFF}</SourceFilename>
+      <SourceBand>1</SourceBand>
+      <SrcRect xOff="720" yOff="0" xSize="720" ySize="721" />
+      <DstRect xOff="0" yOff="0" xSize="720" ySize="721" />
+    </SimpleSource>
+  </VRTRasterBand>
+</VRTDataset>
