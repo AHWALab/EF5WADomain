@@ -59,132 +59,40 @@ Setup Environment Variables for Linux Shared Libraries and OpenMP Threads
 os.environ['LD_LIBRARY_PATH'] = '/usr/local/lib'
 os.environ['OMP_NUM_THREADS'] = '1'
 
-#domain = "WestAfrica"
-#subdomain = "Regional"
-#model_resolution = "1km"
-#systemModel = "crest"
-#systemName = systemModel.upper() + " " + domain.upper() + " " + subdomain.upper()
-#ef5Path = "/vol_efthymios/NFS07/en279/SERVIR/EF5_WA/ef5"
-#statesPath = "states/"
+domain = "WestAfrica"
+subdomain = "Regional"
+model_resolution = "1km"
+systemModel = "crest"
+systemName = systemModel.upper() + " " + domain.upper() + " " + subdomain.upper()
+ef5Path = "/vol_efthymios/NFS07/en279/SERVIR/EF5_WA/ef5"
+statesPath = "states/"
 precipFolder = "precip/"
-#modelStates = ["crest_SM", "kwr_IR", "kwr_pCQ", "kwr_pOQ"]
-#templatePath = "templates/"
-#templates = "ef5_control_template.txt"
-#DATA_ASSIMILATION = False
-#assimilationPath = ""
-#assimilationLogs = []
+precipEF5Folder = "precipEF5/"
+modelStates = ["crest_SM", "kwr_IR", "kwr_pCQ", "kwr_pOQ"]
+templatePath = "templates/"
+templates = "ef5_control_template.txt"
+template = templates
+DATA_ASSIMILATION = False
+assimilationPath = ""
+assimilationLogs = []
 dataPath = "outputs/"
 qpf_store_path = 'qpf_store/'
-#tmpOutput = dataPath + "tmp_output_" + systemModel + "/"
-#SEND_ALERTS = False
-#smtp_server = "smtp.gmail.com"
-#smtp_port = 587
-#account_address = "model_alerts@gmail.com"
-#account_password = "supersecurepassword9000"
-#alert_sender = "Real Time Model Alert" # can also be the same as account_address
-#alert_recipients = ["fixer1@company.com", "fixer2@company.com", "panic@company.com",...]
-#copyToWeb = False
+tmpOutput = dataPath + "tmp_output_" + systemModel + "/"
+SEND_ALERTS = False
+smtp_server = "smtp.gmail.com"
+smtp_port = 587
+account_address = "model_alerts@gmail.com"
+account_password = "supersecurepassword9000"
+alert_sender = "Real Time Model Alert" # can also be the same as account_address
+alert_recipients = ["fixer1@company.com", "fixer2@company.com", "panic@company.com"]
+copyToWeb = False
 HindCastMode = True
-HindCastDate = "2020-10-10 09:00" #"%Y-%m-%d %H:%M"  #Ghana dates is this date in LT, we have to converto to UTC
+HindCastDate = "2020-10-10 09:00" #"%Y-%m-%d %H:%M" UTC
 # Email associated to GPM account
 email = 'vrobledodelgado@uiowa.edu'
 server = 'https://jsimpsonhttps.pps.eosdis.nasa.gov/imerg/gis/early/'
-
-
-def main(args):
-    """Main function of the script.
-
-    This function reads the real-time configuration script, makes sure the necessary files to run
-    FLASH exist and are in the right place, runs the model(s), writes the outputs and states, and
-    reports vie email if an error occurs during execution.
-
-    Arguments:
-        args {list} -- the first argument ([1]) corresponds to a real-time configuration file.
-    """
-
-    # # Read the configuration file
-    # #config_file = __import__(args[1].replace('.py', ''))
-    # import westafrica1km_config_VR as config_file
-    # domain = config_file.domain
-    # subdomain = config_file.subdomain
-    # systemModel = config_file.systemModel
-    # systemName = config_file.systemName
-    # ef5Path = config_file.ef5Path
-    # precipFolder = config_file.precipFolder
-    # statesPath = config_file.statesPath
-    # modelStates = config_file.modelStates
-    # templatePath = config_file.templatePath
-    # template = config_file.templates
-    # DATA_ASSIMILATION = config_file.DATA_ASSIMILATION
-    # assimilationPath = config_file.assimilationPath
-    # assimilationLogs = config_file.assimilationLogs
-    # dataPath = config_file.dataPath
-    # tmpOutput = config_file.tmpOutput
-    # SEND_ALERTS = config_file.SEND_ALERTS
-    # smtp_server = config_file.smtp_server
-    # smtp_port = config_file.smtp_port
-    # account_address = config_file.account_address
-    # account_password = config_file.account_password
-    # alert_sender = config_file.alert_sender
-    # alert_recipients = config_file.alert_recipients
-    # MODEL_RES = config_file.model_resolution
-    # # SampleTIFF = config_file.sample_geotiff
-    # # product_Path = config_file.product_Path
-    # geoFile = "/home/ec2-user/Scripts/post_processing/georef_file.txt"
-    # # thread_th = config_file.thread_th
-    # # distance_th = config_file.distance_th
-    # # Npixels_th = config_file.Npixels_th
-    # copyToWeb = config_file.copyToWeb
-    # HindCastMode = config_file.HindCastMode
-    # HindCastDate = config_file.HindCastDate
-    # server = config_file.server #'https://arthurhouhttps.pps.eosdis.nasa.gov/gpmdata'
-    # subfolder = config_file.subfolder # '/gis/'
-    # file_prefix = config_file.file_prefix #'3B-HHR-GIS.MS.MRG.3IMERG.'
-    # file_suffix = file_prefix.file_suffix #'.V07A.tif'
-    # email = config_file.email
-    
-    # Real-time mode or Hindcast mode
-    # Figure out the timing for running the current timestep
-    if HindCastMode == True:
-        currentTime = dt.strptime(HindCastDate, "%Y-%m-%d %H:%M")  ##informar al usuario que el timezone es utc
-        print("*** Starting hindcast run cycle at " + currentTime.strftime("%Y%m%d_%H%M") + " UTC ***")        
-    else:
-        currentTime = dt.utcnow()
-        print("*** Starting real-time run cycle at " + currentTime.strftime("%Y%m%d_%H%M") + " UTC ***")
-
-    # Round down the current minutess to the nearest 30min increment in the past
-    min30 = int(np.floor(currentTime.minute / 30.0) * 30)
-    # Use the rounded down minutes as the timestamp for the current time step
-    currentTime = currentTime.replace(minute=min30, second=0, microsecond=0)
-
-    # Configure the system to run once every hour
-    # Start the simulation using QPEs from 4-6 hours ago
-    systemStartTime = currentTime - timedelta(minutes=270) #4h,30 min
-    # Save states for the current run with the current time step's timestamp
-    systemStateEndTime = currentTime - timedelta(minutes=240) #4h
-    # Run warm up using the last hour of data until the current time step
-    systemWarmEndTime = currentTime - timedelta(minutes=240)
-    # Setup the simulation forecast starting point as the current timestemp
-    systemStartLRTime = currentTime
-    # Run simulation for 360min (6 hours) into the future using the 72 QPFs (5minx72=6h)
-    systemEndTime = currentTime + timedelta(minutes=360)
-
-    # Configure failure-tolerance for missing QPE timesteps
-    # Only check for states as far as we have QPFs (6 hours)
-    failTime = currentTime - timedelta(hours=6)
-    
-    try:
-        # Clean up old QPE files from GeoTIFF archive (older than 6 hours)
-        #      Keep latest QPFs
-        cleanup_precip(currentTime, failTime, precipFolder,qpf_store_path)
-        # Get the necessary QPEs and QPFs for the current time step into the GeoTIFF precip folder
-        # store whether there's a QPE gap or the QPEs for the current time step is missing
-        get_new_precip(currentTime, server, precipFolder, email)
-        #Produce ML qpf from currentTime - 4h till currentime +2h
-        run_ml_nowcast(currentTime,precipFolder)
-    except:
-        print('fallo el nowcast')
         
+          
 def get_geotiff_datetime(geotiff_path):
     """Funtion that extracts a datetime object corresponding to a Geotiff's timestamp
 
@@ -414,7 +322,7 @@ def get_new_precip(current_timestamp, ppt_server_path, precipFolder, email):
     
     #the first hour of nowcast files will be current time - 3h
     nowcast_older = current_timestamp - timedelta(hours = 3)
-    print('*** Retrieven IMERG files ***')
+    print('*** Retrieving IMERG files ***')
     if tif_files:
         print("There are IMERG files in the precip folder")
         # Extract the most recent date from files
@@ -504,6 +412,7 @@ def get_new_precip(current_timestamp, ppt_server_path, precipFolder, email):
         initial_time = latest_date - timedelta(minutes=360) #failtime
         get_gpm_files(initial_time, formatted_latest_date, ppt_server_path, email)
     print("*** QPE's are complete in precip folder ***")
+        ##here we need to be sure that all qpe files were download
     
 def extract_timestamp_2(filename):
     try:
@@ -528,6 +437,275 @@ def run_ml_nowcast(currentTime,precipFolder):
                 # Copiar el archivo al directorio de destino
                 shutil.copy2(source_file, destination_file)
     print(f"*** Nowcast files were copied to '{precipFolder} ***'")
+
+def send_mail(smtp_server, smtp_port, account_address, account_password, sender, to, subject, text):
+    """Function to send error emails
+
+    Arguments:
+        to {str} -- destination email address
+        subject {str} -- email subject
+        text {str} -- email message contents
+    """
+    msg = MIMEMultipart()
+
+    msg['From'] = sender
+    msg['To'] = to
+    msg['Subject'] = subject
+
+    msg.attach(MIMEText(text))
+
+    mailServer = smtplib.SMTP(smtp_server, smtp_port)
+    mailServer.ehlo()
+    mailServer.starttls()
+    mailServer.ehlo()
+    mailServer.login(account_address, account_password)
+    mailServer.sendmail(account_address, to, msg.as_string())
+    mailServer.close()
+    
+def is_non_zero_file(fpath):
+    """Function that checks if a file exists and is not empty
+
+    Arguments:
+        fpath {str} -- file path to check
+
+    Returns:
+        bool -- True or False
+    """
+    if os.path.isfile(fpath) and os.path.getsize(fpath) > 0:
+        return True
+    else:
+        return False
+    
+def mkdir_p(path):
+    """Function that makes a new directory.
+
+    This function tries to make directories, ignoring errors if they exist.
+
+    Arguments:
+        path {str} -- path of folder to create
+    """
+    try:
+        makedirs(path)
+    except OSError as exc:
+        if exc.errno == errno.EEXIST:
+            pass
+        else:
+            raise
+
+def run_EF5(ef5Path, hot_folder_path, control_file, log_file):
+    """Run EF5 as a subprocess call
+
+    Based on the command:
+
+        subprocess.call(ef5Path + " " + tmpOutput + "flash"+config_file.abbreviation+"_" + systemModel + ".txt >" + tmpOutput + "ef5.log", shell=True)
+
+    Arguments:
+        ef5Path {str} -- Path to EF5 binary
+        hot_folder_path {str} -- Path to the current run's "hot" foler
+        control_file {str} -- path to the control file fir the simulation
+        log_file {str} -- path to the log file for this run
+    """
+    subprocess.call(ef5Path + " " + control_file + " > " + hot_folder_path + log_file, shell=True)
+
+def rename_ef5_precip(precipEF5Folder, precipFolder):    
+    for filename in os.listdir(precipFolder):
+        source_file = os.path.join(precipFolder, filename)
+        dest_file = os.path.join(precipEF5Folder, filename)
+        shutil.copy(source_file, dest_file)
+    
+    # Luego renombramos los archivos en precipEF5Folder que contengan 'qpf'
+    for filename2 in os.listdir(precipEF5Folder):
+        if 'qpf' in filename:
+            new_filename = filename2.replace('qpf', 'qpe')
+            source_file = os.path.join(precipEF5Folder, filename2)
+            dest_file = os.path.join(precipEF5Folder, new_filename)
+            os.rename(source_file, dest_file)
+
+#%%
+
+def main(args):
+    """Main function of the script.
+
+    This function reads the real-time configuration script, makes sure the necessary files to run
+    FLASH exist and are in the right place, runs the model(s), writes the outputs and states, and
+    reports vie email if an error occurs during execution.
+
+    Arguments:
+        args {list} -- the first argument ([1]) corresponds to a real-time configuration file.
+    """
+
+    # # Read the configuration file
+    # #config_file = __import__(args[1].replace('.py', ''))
+    # import westafrica1km_config_VR as config_file
+    # domain = config_file.domain
+    # subdomain = config_file.subdomain
+    # systemModel = config_file.systemModel
+    # systemName = config_file.systemName
+    # ef5Path = config_file.ef5Path
+    # precipFolder = config_file.precipFolder
+    # statesPath = config_file.statesPath
+    # modelStates = config_file.modelStates
+    # templatePath = config_file.templatePath
+    # template = config_file.templates
+    # DATA_ASSIMILATION = config_file.DATA_ASSIMILATION
+    # assimilationPath = config_file.assimilationPath
+    # assimilationLogs = config_file.assimilationLogs
+    # dataPath = config_file.dataPath
+    # tmpOutput = config_file.tmpOutput
+    # SEND_ALERTS = config_file.SEND_ALERTS
+    # smtp_server = config_file.smtp_server
+    # smtp_port = config_file.smtp_port
+    # account_address = config_file.account_address
+    # account_password = config_file.account_password
+    # alert_sender = config_file.alert_sender
+    # alert_recipients = config_file.alert_recipients
+    # MODEL_RES = config_file.model_resolution
+    # # SampleTIFF = config_file.sample_geotiff
+    # # product_Path = config_file.product_Path
+    # geoFile = "/home/ec2-user/Scripts/post_processing/georef_file.txt"
+    # # thread_th = config_file.thread_th
+    # # distance_th = config_file.distance_th
+    # # Npixels_th = config_file.Npixels_th
+    # copyToWeb = config_file.copyToWeb
+    # HindCastMode = config_file.HindCastMode
+    # HindCastDate = config_file.HindCastDate
+    # server = config_file.server #'https://arthurhouhttps.pps.eosdis.nasa.gov/gpmdata'
+    # subfolder = config_file.subfolder # '/gis/'
+    # file_prefix = config_file.file_prefix #'3B-HHR-GIS.MS.MRG.3IMERG.'
+    # file_suffix = file_prefix.file_suffix #'.V07A.tif'
+    # email = config_file.email
+    
+    # Real-time mode or Hindcast mode
+    # Figure out the timing for running the current timestep
+    if HindCastMode == True:
+        currentTime = dt.strptime(HindCastDate, "%Y-%m-%d %H:%M")  ##informar al usuario que el timezone es utc
+        print("*** Starting hindcast run cycle at " + currentTime.strftime("%Y%m%d_%H%M") + " UTC ***")        
+    else:
+        currentTime = dt.utcnow()
+        print("*** Starting real-time run cycle at " + currentTime.strftime("%Y%m%d_%H%M") + " UTC ***")
+
+    # Round down the current minutess to the nearest 30min increment in the past
+    min30 = int(np.floor(currentTime.minute / 30.0) * 30)
+    # Use the rounded down minutes as the timestamp for the current time step
+    currentTime = currentTime.replace(minute=min30, second=0, microsecond=0)
+
+    # Configure the system to run once every hour
+    # Start the simulation using QPEs from 4-6 hours ago
+    systemStartTime = currentTime - timedelta(minutes=270) #4h,30 min
+    # Save states for the current run with the current time step's timestamp
+    systemStateEndTime = currentTime - timedelta(minutes=240) #4h
+    # Run warm up using the last hour of data until the current time step
+    systemWarmEndTime = currentTime - timedelta(minutes=240)
+    # Setup the simulation forecast starting point as the current timestemp
+    systemStartLRTime = currentTime
+    # Run simulation for 360min (6 hours) into the future using the 72 QPFs (5minx72=6h)
+    systemEndTime = currentTime + timedelta(minutes=360)
+
+    # Configure failure-tolerance for missing QPE timesteps
+    # Only check for states as far as we have QPFs (6 hours)
+    failTime = currentTime - timedelta(hours=6)
+    
+    try:
+        # Clean up old QPE files from GeoTIFF archive (older than 6 hours)
+        #      Keep latest QPFs
+        cleanup_precip(currentTime, failTime, precipFolder,qpf_store_path)
+        # Get the necessary QPEs and QPFs for the current time step into the GeoTIFF precip folder
+        # store whether there's a QPE gap or the QPEs for the current time step is missing
+        get_new_precip(currentTime, server, precipFolder, email)
+        #Produce ML qpf from currentTime - 4h till currentime +2h
+        run_ml_nowcast(currentTime,precipFolder)
+        print("*** Al QPE + QPF files are ready in local folder ***")
+    except:
+        print("There was a problem with the QPE routines. Ignoring errors and continuing with execution")
+    
+    #copying precip files into folder 
+    rename_ef5_precip(precipEF5Folder,precipFolder)   
+                
+    # Check to see if all the states for the current time step are available: ["crest_SM", "kwr_IR", "kwr_pCQ", "kwr_pOQ"]
+    # If not then search for previous ones
+    foundAllStates = False
+    realSystemStartTime = systemStartTime
+    print("*** Looking for states ***")
+    # Iterate over all necessary states and check if they're available for the current run
+    # Only go back up to 6 hours, in 30min decrements
+    while foundAllStates == False and realSystemStartTime > failTime:
+        foundAllStates = True
+        for state in modelStates:
+            if is_non_zero_file(statesPath + state + "_" + realSystemStartTime.strftime("%Y%m%d_%H%M") + ".tif") == False:
+                print('    Missing start state: ' + statesPath + state + '_' + realSystemStartTime.strftime("%Y%m%d_%H%M") + '.tif')
+                foundAllStates = False
+        if foundAllStates == False:
+            realSystemStartTime = realSystemStartTime - timedelta(minutes=30)  
+        
+    # If no states are found for the last 6 hours, assume that no previous states exist, and
+    # use the current time step as the starting point for a "cold" start.
+    # If notifications are enabled, notify all recipients about not finding states.    
+    if not foundAllStates:
+        if SEND_ALERTS:
+            subject = systemName + ' failed for ' + currentTime.strftime("%Y%m%d_%H%M")
+            message = 'Missing states from ' + realSystemStartTime.strftime("%Y%m%d_%H%M") + ' to ' + systemStartTime.strftime("%Y%m%d_%H%M") + '. Starting model with cold states.'    
+        # for recipient in alert_recipients:
+        #         send_mail(smtp_server, smtp_port, account_address, account_password, alert_sender, recipient, subject, message)
+        print('No states found!!!')
+        realSystemStartTime = systemStartTime
+    # If notifications are enabled, notify if no immediately anteceding states existed,
+    # and had to use old states.
+    elif realSystemStartTime != systemStartTime:
+        if SEND_ALERTS:
+            subject = systemName + ' warning for ' + currentTime.strftime("%Y%m%d_%H%M")
+            message = 'Using states from ' + realSystemStartTime.strftime("%Y%m%d_%H%M") + ' instead of ' + systemStartTime.strftime("%Y%m%d_%H%M")
+            for recipient in alert_recipients:
+               send_mail(smtp_server, smtp_port, account_address, account_password, alert_sender, recipient, subject, message)
+        print('Had to use older states')
+    
+    print("Running simulation system for: " + currentTime.strftime("%Y%m%d_%H%M"))
+    print("Simulations start at: " + realSystemStartTime.strftime("%Y%m%d_%H%M") + " and ends at: " + systemEndTime.strftime("%Y%m%d_%H%M") + " while state update ends at: " + systemStateEndTime.strftime("%Y%m%d_%H%M"))
+
+    # Clean up "Hot" folders
+    # Delete the previously existing "Hot" folders, ignore error if it doesn't exist
+    rmtree(tmpOutput, ignore_errors=1)
+    rmtree(dataPath, ignore_errors=1)
+    # Create the "Hot" folder for the current run
+    mkdir_p(tmpOutput)
+    mkdir_p(dataPath)  
+    # Create the control files for both subdomains
+    # Define the control file path to create
+    controlFile = tmpOutput + "WA_" + subdomain + "_" + systemModel + ".txt"
+    fOut = open(controlFile, "w")
+
+    # Create a control file with updated fields
+    for line in open(templatePath + template).readlines():
+        line = re.sub('{OUTPUTPATH}', tmpOutput, line)
+        line = re.sub('{TIMEBEGIN}', realSystemStartTime.strftime('%Y%m%d%H%M'), line)
+        line = re.sub('{TIMEBEGINLR}', systemStartLRTime.strftime('%Y%m%d%H%M'), line)
+        line = re.sub('{TIMEWARMEND}', systemWarmEndTime.strftime('%Y%m%d%H%M'), line)
+        line = re.sub('{TIMESTATE}', systemStateEndTime.strftime('%Y%m%d%H%M'), line)
+        line = re.sub('{TIMEEND}', systemEndTime.strftime('%Y%m%d%H%M'), line)
+        line = re.sub('{SYSTEMMODEL}', systemModel, line)
+        fOut.write(line)
+    fOut.close()
+
+    """
+    # If data assimilation if being used for CREST, clean up previous data assimilation logs
+    #To do: Verify against EF5 control file - when this functionality is needed
+    if DATA_ASSIMILATION and systemModel=="crest":
+        # Data assimilation output files
+        for log in assimilationLogs:
+            if is_non_zero_file(assimilationPath + log) == True:
+                remove(assimilationPath + log)
+    """
+    # Run EF5 simulations
+    # Prepare function arguments for multiprocess invovation of run_EF5()
+    #arguments = [ef5Path, tmpOutput, controlFile, "ef5.log"]
+    
+    # Create a thread pool of the same size as the number of control files
+    #tp = ThreadPool(1)
+    # Run each EF5 instance asynchronously using independent threads
+    #tp.apply_async(run_EF5, arguments)
+    
+    # Wait for both processes to finish and collapse the thread pool
+    #tp.close()
+    #tp.join()
     
     
 #%%              
