@@ -56,8 +56,8 @@ import time
 """
 Setup Environment Variables for Linux Shared Libraries and OpenMP Threads
 """
-os.environ['LD_LIBRARY_PATH'] = '/usr/local/lib'
-os.environ['OMP_NUM_THREADS'] = '1'
+#os.environ['LD_LIBRARY_PATH'] = '/usr/local/lib'
+#os.environ['OMP_NUM_THREADS'] = '1'
 
 domain = "WestAfrica"
 subdomain = "Regional"
@@ -673,6 +673,7 @@ def main(args):
     # Create a control file with updated fields
     for line in open(templatePath + template).readlines():
         line = re.sub('{OUTPUTPATH}', tmpOutput, line)
+        line = re.sub('{STATESPATH}', statesPath, line)
         line = re.sub('{TIMEBEGIN}', realSystemStartTime.strftime('%Y%m%d%H%M'), line)
         line = re.sub('{TIMEBEGINLR}', systemStartLRTime.strftime('%Y%m%d%H%M'), line)
         line = re.sub('{TIMEWARMEND}', systemWarmEndTime.strftime('%Y%m%d%H%M'), line)
