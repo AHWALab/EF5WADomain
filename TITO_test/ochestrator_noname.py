@@ -64,7 +64,7 @@ subdomain = "Regional"
 model_resolution = "1km"
 systemModel = "crest"
 systemName = systemModel.upper() + " " + domain.upper() + " " + subdomain.upper()
-ef5Path = "/vol_efthymios/NFS07/en279/SERVIR/EF5_WA/ef5"
+ef5Path = "/Shared/lss_hvergaraarrieta/tools/EF5/bin/ef5" 
 statesPath = "states/"
 precipFolder = "precip/"
 precipEF5Folder = "precipEF5/"
@@ -84,14 +84,13 @@ smtp_port = 587
 account_address = "model_alerts@gmail.com"
 account_password = "supersecurepassword9000"
 alert_sender = "Real Time Model Alert" # can also be the same as account_address
-alert_recipients = ["fixer1@company.com", "fixer2@company.com", "panic@company.com"]
+alert_recipients = ["fixer1@company.com", "fixer2@company.com", "panic@company.com",...]
 copyToWeb = False
 HindCastMode = True
 HindCastDate = "2020-10-10 09:00" #"%Y-%m-%d %H:%M" UTC
 # Email associated to GPM account
 email = 'vrobledodelgado@uiowa.edu'
 server = 'https://jsimpsonhttps.pps.eosdis.nasa.gov/imerg/gis/early/'
-        
           
 def get_geotiff_datetime(geotiff_path):
     """Funtion that extracts a datetime object corresponding to a Geotiff's timestamp
@@ -522,7 +521,6 @@ def rename_ef5_precip(precipEF5Folder, precipFolder):
             os.rename(source_file, dest_file)
 
 #%%
-
 def main(args):
     """Main function of the script.
 
@@ -533,10 +531,10 @@ def main(args):
     Arguments:
         args {list} -- the first argument ([1]) corresponds to a real-time configuration file.
     """
-
-    # # Read the configuration file
-    # #config_file = __import__(args[1].replace('.py', ''))
-    # import westafrica1km_config_VR as config_file
+        
+    # Read the configuration file
+    #config_file = __import__(args[1].replace('.py', ''))
+    # import westafrica1km_config as config_file
     # domain = config_file.domain
     # subdomain = config_file.subdomain
     # systemModel = config_file.systemModel
@@ -544,6 +542,7 @@ def main(args):
     # ef5Path = config_file.ef5Path
     # precipFolder = config_file.precipFolder
     # statesPath = config_file.statesPath
+    # precipEF5Folder = config_file.precipEF5Folder
     # modelStates = config_file.modelStates
     # templatePath = config_file.templatePath
     # template = config_file.templates
@@ -551,6 +550,7 @@ def main(args):
     # assimilationPath = config_file.assimilationPath
     # assimilationLogs = config_file.assimilationLogs
     # dataPath = config_file.dataPath
+    # qpf_store_path = config_file.qpf_store_path
     # tmpOutput = config_file.tmpOutput
     # SEND_ALERTS = config_file.SEND_ALERTS
     # smtp_server = config_file.smtp_server
@@ -569,11 +569,8 @@ def main(args):
     # copyToWeb = config_file.copyToWeb
     # HindCastMode = config_file.HindCastMode
     # HindCastDate = config_file.HindCastDate
-    # server = config_file.server #'https://arthurhouhttps.pps.eosdis.nasa.gov/gpmdata'
-    # subfolder = config_file.subfolder # '/gis/'
-    # file_prefix = config_file.file_prefix #'3B-HHR-GIS.MS.MRG.3IMERG.'
-    # file_suffix = file_prefix.file_suffix #'.V07A.tif'
     # email = config_file.email
+    # server = config_file.server    
     
     # Real-time mode or Hindcast mode
     # Figure out the timing for running the current timestep
@@ -617,7 +614,7 @@ def main(args):
         print("*** Al QPE + QPF files are ready in local folder ***")
     except:
         print("There was a problem with the QPE routines. Ignoring errors and continuing with execution")
-    
+#%%    
     #copying precip files into folder 
     rename_ef5_precip(precipEF5Folder,precipFolder)   
                 
