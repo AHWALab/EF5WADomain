@@ -301,6 +301,12 @@ def processIMERG(local_filename,llx,lly,urx,ury):
     # Scale value
     NewGrid = NewGrid*0.1
     return NewGrid, nx, ny, gt, proj
+
+def extract_datetime_from_filename(filename):
+    base_name = os.path.basename(filename)
+    date_str = base_name.split('.')[2]  # Get YYYYMMDDHHMM part
+    filename = datetime.datetime.strptime(date_str, '%Y%m%d%H%M')
+    return filename
                              
 def get_new_precip(current_timestamp, ppt_server_path, precipFolder, email):
     """Function that brings latest IMERG precipitation file into the GeoTIFF precip folder
@@ -359,7 +365,6 @@ def get_new_precip(current_timestamp, ppt_server_path, precipFolder, email):
                         print("    Copying the corresponding file from nowcast store folder")
                         formatted_date = date.strftime('%Y%m%d%H%M')
                         # Look for the filename in qpf store that cointains the 'formatted_timestamp' missing
-                        file_found = False
                         for filename in os.listdir(qpf_store_path):
                             if formatted_date in filename:
                                 source_file = os.path.join(qpf_store_path, filename)
@@ -367,11 +372,17 @@ def get_new_precip(current_timestamp, ppt_server_path, precipFolder, email):
                                 # Copiar el archivo al directorio de destino
                                 shutil.copy2(source_file, destination_file)
                                 print(f"    File '{filename}' was copied in '{precipFolder}'")
-                                file_found = True
                                 break
-                        if not file_found:
-                            print(f"    There is no file in qpf store with date: '{formatted_date}'") ###REVISAR HUMBERTO
-                            #To do: if there is no file in qpf file, duplicate the last qpe file.            
+                        """    
+                        print(f"    There is no file in qpf store with date: '{formatted_date}'") 
+                        tif_files = glob.glob(os.path.join(precipFolder, "imerg.qpe.*.30minAccum.tif"))
+                        # Find the most recent file
+                        latest_file = max(tif_files, key=extract_datetime_from_filename)
+                        print(f"    Latest file: {latest_file}")
+                        new_filename = os.path.join(precipFolder, f"imerg.qpe.{formatted_date}.30minAccum.tif")
+                        shutil.copy2(latest_file, new_filename)
+                        print(f"    Created duplicate file: {new_filename}")  
+                        """                             
             else: 
                 print(f"    There's more than a 30min gap between {current_timestamp} and the latest geoTIFF file")
                 print("    Last IMERG file to download:", nowcast_older - timedelta(minutes=30))
@@ -380,23 +391,25 @@ def get_new_precip(current_timestamp, ppt_server_path, precipFolder, email):
                 nowcast_older_server = nowcast_older - timedelta(minutes=60)
                 latest_pptfile = formatted_latest_pptfile
                 get_gpm_files(latest_pptfile, nowcast_older_server, ppt_server_path, email)
+                
                 #List the missing dates between lastes ppt file and current timestep
                 missing_dates = []
                 next_timestamp = formatted_latest_pptfile + timedelta(minutes=30)
                 while next_timestamp < nowcast_older:
                     missing_dates.append(next_timestamp)
                     next_timestamp += timedelta(minutes=30)
+               
                 for date in missing_dates: #esta seccion hay que mejorarla, para hacer el retrieve 1 solaa vez
                     #aca debe buscar las missing dates en el folder local antes de buscar en el server!!!!!!!!!!!!!!!!
                     server_files = retrieve_imerg_files(ppt_server_path, email, HindCastMode, date)    
                     timestamps = [extract_timestamp(file) for file in server_files]
+                    
                     #Looking for timestaps missing in imerg
                     if date not in timestamps:
                         print(f"    File {date} is missing")
                         print("    Copying the corresponding file from nowcast store folder")
                         formatted_date = date.strftime('%Y%m%d%H%M')
                         # Copying missing file from qpf store folder 
-                        file_found = False
                         for filename in os.listdir(qpf_store_path):
                             if formatted_date in filename:
                                 source_file = os.path.join(qpf_store_path, filename)
@@ -404,10 +417,18 @@ def get_new_precip(current_timestamp, ppt_server_path, precipFolder, email):
                                 # Copying file to precip folder
                                 shutil.copy2(source_file, destination_file)
                                 print(f"    File '{filename}' was copied in '{precipFolder}'")
-                                file_found = True
-                            if not file_found:
-                                print(f"   There is no file in qpf store with date: '{formatted_date}'") ###REVISAR HUMBERTO
-                                ## To do: duplicate the last qpe file and change the name.
+                            else:
+                                break
+                        """
+                        print(f"   There is no file in qpf store with date: '{formatted_date}'")
+                        tif_files = glob.glob(os.path.join(precipFolder, "imerg.qpe.*.30minAccum.tif"))
+                        latest_file = max(tif_files, key=extract_datetime_from_filename)
+                        print(f"    Latest file: {latest_file}")
+                        new_filename = os.path.join(precipFolder, f"imerg.qpe.{formatted_date}.30minAccum.tif")
+                        shutil.copy2(latest_file, new_filename)
+                        print(f"    Created duplicate file: {new_filename}")
+                        """
+
                     #if date is in timestaps, file is available.    
     else:
         print("    No '.tif' files found in the precip folder.") 
@@ -426,14 +447,15 @@ def get_new_precip(current_timestamp, ppt_server_path, precipFolder, email):
         while next_timestamp < nowcast_older:
             missing_dates.append(next_timestamp)
             next_timestamp += timedelta(minutes=30)
+            
             for date in missing_dates: 
                 server_files = retrieve_imerg_files(ppt_server_path, email, HindCastMode, date)    
                 timestamps = [extract_timestamp(file) for file in server_files]
+                
                 if date not in timestamps:
                     print(f"    File {date} is missing")
                     print("    Copying the corresponding file from nowcast store folder")
                     formatted_date = date.strftime('%Y%m%d%H%M')
-                    file_found = False
                     for filename in os.listdir(qpf_store_path):
                         if formatted_date in filename:
                             source_file = os.path.join(qpf_store_path, filename)
@@ -441,10 +463,21 @@ def get_new_precip(current_timestamp, ppt_server_path, precipFolder, email):
                             # Copying file to precip folder
                             shutil.copy2(source_file, destination_file)
                             print(f"    File '{filename}' was copied in '{precipFolder}'")
-                            file_found = True
-                        if not file_found:
-                            print(f"   There is no file in qpf store with date: '{formatted_date}'") ###REVISAR HUMBERTO
-                            #To Do: print("    Duplicating lastest qpe file and rename it.")
+                        else:
+                            break
+                    """
+                    print(f"   There is no file in qpf store with date: '{formatted_date}'") ###REVISAR HUMBERTO
+                    tif_files = glob.glob(os.path.join(precipFolder, "imerg.qpe.*.30minAccum.tif"))
+                    if tif_files:
+                        # Find the most recent file
+                        latest_file = max(tif_files, key=extract_datetime_from_filename)
+                        print(f"    Latest file: {latest_file}")
+                        new_filename = os.path.join(precipFolder, f"imerg.qpe.{formatted_date}.30minAccum.tif")
+                        shutil.copy2(latest_file, new_filename)
+                        print(f"    Created duplicate file: {new_filename}")
+                    else:
+                        print("    No .tif files found in precipFolder to copy")   
+                    """   
     # Get a list of all .tif files in the current directory
     try:
         tif_fil = glob.glob("./*.tif")
@@ -465,17 +498,55 @@ def run_ml_nowcast(currentTime,precipFolder):
     init = currentTime - timedelta(hours = 3.5)
     final = currentTime + timedelta(hours = 2.5)
     path_nowcast = './nowcast/53'
-    # Iterar sobre los archivos en el directorio de origen
+    # Iterar sobre los archivos en el directorio
+    
     for filename in os.listdir(path_nowcast):
         if filename.endswith(".tif"):
             file_timestamp = extract_timestamp_2(filename)
+            nowc_files = False
             if file_timestamp and init <= file_timestamp <= final:
                 # Ruta completa del archivo fuente y destino
                 source_file = os.path.join(path_nowcast, filename)
                 destination_file = os.path.join(precipFolder, filename)
                 # Copiar el archivo al directorio de destino
                 shutil.copy2(source_file, destination_file)
-    print(f"    Nowcast files were copied to '{precipFolder}'")
+                nowc_files = True
+                print(f"    Nowcast files were copied to '{precipFolder}'")
+    if not nowc_files:
+        print('    Duplicating last qpe file')
+        date_list = []
+        current_date = init
+        while current_date <= final:
+            date_list.append(current_date.strftime('%Y%m%d%H%M'))
+            current_date += timedelta(minutes=30)
+            
+        # Find all .tif files in the directory
+        tif_files = glob.glob(os.path.join(precipFolder, "imerg.qpe.*.30minAccum.tif"))
+    
+        # Extract dates from filenames and find the most recent file
+        most_recent_file = None
+        most_recent_date = None
+
+        for file in tif_files:
+            filename = os.path.basename(file)
+            file_date_str = filename.split('.')[2]
+            file_date = datetime.datetime.strptime(file_date_str, '%Y%m%d%H%M')
+            if most_recent_date is None or file_date > most_recent_date:
+                most_recent_date = file_date
+                most_recent_file = file
+
+        if most_recent_file is None:
+            print("     No valid .tif files found in the directory.")
+        else:
+            print(f"     Most recent file selected: {most_recent_file}")
+
+        # Duplicate the most recent file with new names based on the date list
+        for date_str in date_list:
+            new_filename = f"imerg.qpe.{date_str}.30minAccum.tif"
+            new_filepath = os.path.join(precipFolder, new_filename)
+            shutil.copy2(most_recent_file, new_filepath)
+            print(f"Created file: {new_filepath}")    
+
 
 def send_mail(smtp_server, smtp_port, account_address, account_password, sender, to, subject, text):
     """Function to send error emails
