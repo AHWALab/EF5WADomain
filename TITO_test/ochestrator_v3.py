@@ -26,6 +26,7 @@ SHIELD: System for Hydrological and Inundation Early-warning and Detection
 """
 #%%
 from shutil import rmtree, copy
+import os
 from os import makedirs, listdir, rename, remove
 import glob
 from datetime import datetime as dt
