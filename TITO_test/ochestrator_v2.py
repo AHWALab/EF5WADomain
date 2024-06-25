@@ -86,7 +86,7 @@ account_password = "supersecurepassword9000"
 alert_sender = "Real Time Model Alert" # can also be the same as account_address
 alert_recipients = ["fixer1@company.com", "fixer2@company.com", "panic@company.com",...]
 copyToWeb = False
-HindCastMode = True
+HindCastMode = False
 HindCastDate = "2020-10-10 09:00" #"%Y-%m-%d %H:%M" UTC
 # Email associated to GPM account
 email = 'vrobledodelgado@uiowa.edu'
@@ -139,10 +139,10 @@ def cleanup_precip(current_datetime, failTime, precipFolder, qpf_store_path):
     # Delete all QPF files older than the current_datetime and copy them in the store path
     # QPFs newer than current_datetime will be overwritten when placed in the precip folder.
     print("    Deleting all QPF files older than Current Time: ", current_datetime)
+    print("    Copying all QPF files older than Current Time: ", current_datetime, " into qpf_store folder.")
     for qpf in qpfs:
         geotiff_datetime = get_geotiff_datetime(precipFolder + qpf)
         if(geotiff_datetime < current_datetime):
-            print("    Copying all QPF files older than Current Time: "+ current_datetime+ " into qpf_store folder.")
             shutil.copy2(precipFolder + qpf, qpf_store_path)
             os.remove(precipFolder + qpf)
             
@@ -416,10 +416,10 @@ def get_new_precip(current_timestamp, ppt_server_path, precipFolder, email):
         #Downloading imerg Files
         nowcast_older_server = nowcast_older - timedelta(minutes=60)
         initial_time_server = initial_time - timedelta(minutes=30)
-        print("    Last IMERG file:", nowcast_older)
+        print("    Last IMERG file to download:", nowcast_older- timedelta(minutes=30))
         print("    Initial time to download:", initial_time)
         get_gpm_files(initial_time_server, nowcast_older_server, ppt_server_path, email)
-        #
+        #if some file is missin
         missing_dates = []
         next_timestamp = initial_time + timedelta(minutes=30)
         while next_timestamp < nowcast_older:
@@ -444,8 +444,14 @@ def get_new_precip(current_timestamp, ppt_server_path, precipFolder, email):
                         if not file_found:
                             print(f"   There is no file in qpf store with date: '{formatted_date}'") ###REVISAR HUMBERTO
                             #To Do: print("    Duplicating lastest qpe file and rename it.")
-    os.remove("./OutTemp.tif")
-    
+    # Get a list of all .tif files in the current directory
+    try:
+        tif_fil = glob.glob("./*.tif")
+        for tif_file in tif_files:
+            os.remove(tif_file)
+    except:
+        print(' ')
+
 def extract_timestamp_2(filename):
     try:
         date_str = filename.split('.')[2]  # '202010100600'
@@ -743,16 +749,18 @@ def main(args):
     
     # Run EF5 simulations
     # Prepare function arguments for multiprocess invovation of run_EF5()
-    #arguments = [ef5Path, tmpOutput, controlFile, "ef5.log"]
+    arguments = [ef5Path, tmpOutput, controlFile, "ef5.log"]
     
     # Create a thread pool of the same size as the number of control files
-    #tp = ThreadPool(1)
+    tp = ThreadPool(1)
     # Run each EF5 instance asynchronously using independent threads
-    #tp.apply_async(run_EF5, arguments)
+    tp.apply_async(run_EF5, arguments)
     
     # Wait for both processes to finish and collapse the thread pool
-    #tp.close()
-    #tp.join()
+    tp.close()
+    tp.join()
+    
+    print("******** EF5 Outputs are ready!!! ********")
     
     
 #%%              
