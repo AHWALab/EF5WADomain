@@ -91,7 +91,7 @@ HindCastDate = "2020-10-10 09:00" #"%Y-%m-%d %H:%M" UTC
 # Email associated to GPM account
 email = 'vrobledodelgado@uiowa.edu'
 server = 'https://jsimpsonhttps.pps.eosdis.nasa.gov/imerg/gis/early/'
-          
+#%%          
 def get_geotiff_datetime(geotiff_path):
     """Funtion that extracts a datetime object corresponding to a Geotiff's timestamp
 
@@ -130,6 +130,7 @@ def cleanup_precip(current_datetime, failTime, precipFolder, qpf_store_path):
     #print(qpes)
 
     # Delete all QPE files older than max_timestamp (-6h)
+    print("    Deleting all QPE files older than Fail Time: ", failTime)
     for qpe in qpes:
         geotiff_datetime = get_geotiff_datetime(precipFolder + qpe)
         if(geotiff_datetime < failTime):
@@ -137,9 +138,11 @@ def cleanup_precip(current_datetime, failTime, precipFolder, qpf_store_path):
 
     # Delete all QPF files older than the current_datetime and copy them in the store path
     # QPFs newer than current_datetime will be overwritten when placed in the precip folder.
+    print("    Deleting all QPF files older than Current Time: ", current_datetime)
     for qpf in qpfs:
         geotiff_datetime = get_geotiff_datetime(precipFolder + qpf)
         if(geotiff_datetime < current_datetime):
+            print("    Copying all QPF files older than Current Time: "+ current_datetime+ " into qpf_store folder.")
             shutil.copy2(precipFolder + qpf, qpf_store_path)
             os.remove(precipFolder + qpf)
             
@@ -152,7 +155,6 @@ def cleanup_precip(current_datetime, failTime, precipFolder, qpf_store_path):
         if(qpf_datetime < max_qpf):
             os.remove(qpf_store_path + qpf_stored)
     
-    print('*** Precip folder cleaning completed ***')
     
 def extract_timestamp(filename):
     date_str = filename.split('.')[4][:8]  # '20201001'
@@ -166,7 +168,9 @@ def retrieve_imerg_files(url, email, HindCastMode, date):
         folder = date.strftime('%Y/%m/')
         url_server = url + '/' + folder
     else: 
-        url_server = url
+        folder = date.strftime('%Y/%m/')
+        url_server = url + '/' + folder
+        #url_server = url
     # Send a GET request to the URL
     response = requests.get(url_server, auth=(email, email))
 
@@ -222,7 +226,7 @@ def get_gpm_files(initial_timestamp, final_timestamp, ppt_server_path ,email):
 
         filename = folder + file_prefix + date_stamp + file_suffix
 
-        print('    Downloading ' + server + '/' + filename)
+        print('    Downloading ' + final_time_gridout.strftime('%Y-%m-%d %H:%M'))
         try:
             # Download from NASA server
             get_file(filename)
@@ -252,6 +256,7 @@ def get_file(filename):
    process.wait() # wait so this program doesn't end before getting all files#
    
 def ReadandWarp(gridFile,xmin,ymin,xmax,ymax):
+
     #Read grid and warp to domain grid
     #Assumes no reprojection is necessary, and EPSG:4326
     rawGridIn = gdal.Open(gridFile, GA_ReadOnly)
@@ -320,19 +325,18 @@ def get_new_precip(current_timestamp, ppt_server_path, precipFolder, email):
     tif_files = [f for f in files_folder if "qpe" in f]
     
     #the first hour of nowcast files will be current time - 3h
-    nowcast_older = current_timestamp - timedelta(hours = 3)
-    print('*** Retrieving IMERG files ***')
+    nowcast_older = current_timestamp - timedelta(hours = 3.5) #This is the first nowcast file to be created 
     if tif_files:
-        print("There are IMERG files in the precip folder")
+        print("    There are IMERG files in the precip folder")
         # Extract the most recent date from files
         latest_date = max(tif_files, key=lambda x: datetime.datetime.strptime(x[10:22], '%Y%m%d%H%M'))
         formatted_latest_pptfile = datetime.datetime.strptime(latest_date[10:22], '%Y%m%d%H%M') #last file on precip
-        #if the latest imerg file in folder corresponds to the older nowcast file (current time - 3h)
-        if formatted_latest_pptfile <= nowcast_older: ###Cuando podria pasar lo contrario HUMBERTO!!!
+        #if the latest imerg file in folder corresponds to the older nowcast file (current time - 4h)
+        if formatted_latest_pptfile < nowcast_older:
             # and if the time difference betwen the current timestep and the latest imerg in folder is less than 30 min.
             if nowcast_older - formatted_latest_pptfile <= timedelta(minutes=60):
-                print('    There are less than 30 min')
-                #List the missing dates between lastes ppt file and current timestep
+                print("    There are less than 30 min between last imerg file available on folder and last imerg file on server: ", nowcast_older-timedelta(minutes=30))
+                #List the missing dates between lastest ppt file and current timestep -4h
                 missing_dates = []
                 # Iterar desde la fecha del archivo más reciente hasta el timestamp actual en intervalos de 30 minutos
                 next_timestamp = formatted_latest_pptfile + timedelta(minutes=30)
@@ -340,8 +344,8 @@ def get_new_precip(current_timestamp, ppt_server_path, precipFolder, email):
                     missing_dates.append(next_timestamp)
                     next_timestamp += timedelta(minutes=30)
                 for date in missing_dates:
+                    #Verifying if missing dates are on the GPM server.
                     server_files = retrieve_imerg_files(ppt_server_path, email, HindCastMode, date)
-                    # Verificar si el timestamp está en la lista de archivos
                     timestamps = [extract_timestamp(file) for file in server_files]
                     if date in timestamps:
                         print("    Downloading the last file of precip data")
@@ -353,11 +357,10 @@ def get_new_precip(current_timestamp, ppt_server_path, precipFolder, email):
                         print("    The file requeried is not available on the IMERG server.")
                         print("    Copying the corresponding file from nowcast store folder")
                         formatted_date = date.strftime('%Y%m%d%H%M')
-                        # Buscar el archivo que contenga el string 'formatted_timestamp'
+                        # Look for the filename in qpf store that cointains the 'formatted_timestamp' missing
                         file_found = False
                         for filename in os.listdir(qpf_store_path):
                             if formatted_date in filename:
-                                # Ruta completa del archivo fuente y destino
                                 source_file = os.path.join(qpf_store_path, filename)
                                 destination_file = os.path.join(precipFolder, filename)
                                 # Copiar el archivo al directorio de destino
@@ -366,14 +369,16 @@ def get_new_precip(current_timestamp, ppt_server_path, precipFolder, email):
                                 file_found = True
                                 break
                         if not file_found:
-                            print(f"    No se encontró ningún archivo que contenga el string '{formatted_date}'") ###REVISAR HUMBERTO            
+                            print(f"    There is no file in qpf store with date: '{formatted_date}'") ###REVISAR HUMBERTO
+                            #To do: if there is no file in qpf file, duplicate the last qpe file.            
             else: 
-                print("    There's more than a 30min gap between now and the latest geoTIFF file!!!")
-                print("    Last IMERG file:", nowcast_older)
+                print(f"    There's more than a 30min gap between {current_timestamp} and the latest geoTIFF file")
+                print("    Last IMERG file to download:", nowcast_older - timedelta(minutes=30))
                 print("    Latest Geotiff file available in folder:", formatted_latest_pptfile)
                 #Downloading imerg files between dates
                 nowcast_older_server = nowcast_older - timedelta(minutes=60)
-                get_gpm_files(formatted_latest_pptfile, nowcast_older_server, ppt_server_path, email)
+                latest_pptfile = formatted_latest_pptfile
+                get_gpm_files(latest_pptfile, nowcast_older_server, ppt_server_path, email)
                 #List the missing dates between lastes ppt file and current timestep
                 missing_dates = []
                 next_timestamp = formatted_latest_pptfile + timedelta(minutes=30)
@@ -389,29 +394,57 @@ def get_new_precip(current_timestamp, ppt_server_path, precipFolder, email):
                         print(f"    File {date} is missing")
                         print("    Copying the corresponding file from nowcast store folder")
                         formatted_date = date.strftime('%Y%m%d%H%M')
-                        # Buscar el archivo que contenga el string 'formatted_timestamp'
+                        # Copying missing file from qpf store folder 
                         file_found = False
                         for filename in os.listdir(qpf_store_path):
                             if formatted_date in filename:
-                                # Ruta completa del archivo fuente y destino
                                 source_file = os.path.join(qpf_store_path, filename)
                                 destination_file = os.path.join(precipFolder, filename)
-                                # Copiar el archivo al directorio de destino
+                                # Copying file to precip folder
                                 shutil.copy2(source_file, destination_file)
                                 print(f"    File '{filename}' was copied in '{precipFolder}'")
                                 file_found = True
                             if not file_found:
-                                print(f"    No se encontró ningún archivo que contenga el string '{formatted_date}'") ###REVISAR HUMBERTO
+                                print(f"   There is no file in qpf store with date: '{formatted_date}'") ###REVISAR HUMBERTO
+                                ## To do: duplicate the last qpe file and change the name.
+                    #if date is in timestaps, file is available.    
     else:
         print("    No '.tif' files found in the precip folder.") 
-        #si no hay archivos coge el archivo final como el current time 
-        #y el inicio va a ser el ultimo del imerg - 6 horas 
-        latest_date = current_timestamp
-        formatted_latest_date = latest_date
-        initial_time = latest_date - timedelta(minutes=360) #failtime
-        get_gpm_files(initial_time, formatted_latest_date, ppt_server_path, email)
-    print("*** QPE's are complete in precip folder ***")
-        ##here we need to be sure that all qpe files were download
+        #If there is no files in folder, Download the entire chuck of dates 
+        #from failtime (current time - 6h) to Nowcast time (current time -4h) 
+        initial_time = current_timestamp - timedelta(hours = 6) #sames as fail time
+        #Downloading imerg Files
+        nowcast_older_server = nowcast_older - timedelta(minutes=60)
+        initial_time_server = initial_time - timedelta(minutes=30)
+        print("    Last IMERG file:", nowcast_older)
+        print("    Initial time to download:", initial_time)
+        get_gpm_files(initial_time_server, nowcast_older_server, ppt_server_path, email)
+        #
+        missing_dates = []
+        next_timestamp = initial_time + timedelta(minutes=30)
+        while next_timestamp < nowcast_older:
+            missing_dates.append(next_timestamp)
+            next_timestamp += timedelta(minutes=30)
+            for date in missing_dates: 
+                server_files = retrieve_imerg_files(ppt_server_path, email, HindCastMode, date)    
+                timestamps = [extract_timestamp(file) for file in server_files]
+                if date not in timestamps:
+                    print(f"    File {date} is missing")
+                    print("    Copying the corresponding file from nowcast store folder")
+                    formatted_date = date.strftime('%Y%m%d%H%M')
+                    file_found = False
+                    for filename in os.listdir(qpf_store_path):
+                        if formatted_date in filename:
+                            source_file = os.path.join(qpf_store_path, filename)
+                            destination_file = os.path.join(precipFolder, filename)
+                            # Copying file to precip folder
+                            shutil.copy2(source_file, destination_file)
+                            print(f"    File '{filename}' was copied in '{precipFolder}'")
+                            file_found = True
+                        if not file_found:
+                            print(f"   There is no file in qpf store with date: '{formatted_date}'") ###REVISAR HUMBERTO
+                            #To Do: print("    Duplicating lastest qpe file and rename it.")
+    os.remove("./OutTemp.tif")
     
 def extract_timestamp_2(filename):
     try:
@@ -422,9 +455,9 @@ def extract_timestamp_2(filename):
     
 def run_ml_nowcast(currentTime,precipFolder):
     #Produce ML qpf from currentTime - 4h till currentime +2h
-    init = currentTime - timedelta(hours = 3)
-    final = currentTime + timedelta(hours = 2)
-    path_nowcast = '/Users/vrobledodelgado/Documents/GitHub/EF5WADomain/TITO_test/nowcast/53'
+    init = currentTime - timedelta(hours = 3.5)
+    final = currentTime + timedelta(hours = 2.5)
+    path_nowcast = './nowcast/53'
     # Iterar sobre los archivos en el directorio de origen
     for filename in os.listdir(path_nowcast):
         if filename.endswith(".tif"):
@@ -435,7 +468,7 @@ def run_ml_nowcast(currentTime,precipFolder):
                 destination_file = os.path.join(precipFolder, filename)
                 # Copiar el archivo al directorio de destino
                 shutil.copy2(source_file, destination_file)
-    print(f"*** Nowcast files were copied to '{precipFolder} ***'")
+    print(f"    Nowcast files were copied to '{precipFolder}'")
 
 def send_mail(smtp_server, smtp_port, account_address, account_password, sender, to, subject, text):
     """Function to send error emails
@@ -575,16 +608,19 @@ def main(args):
     # Real-time mode or Hindcast mode
     # Figure out the timing for running the current timestep
     if HindCastMode == True:
-        currentTime = dt.strptime(HindCastDate, "%Y-%m-%d %H:%M")  ##informar al usuario que el timezone es utc
-        print("*** Starting hindcast run cycle at " + currentTime.strftime("%Y%m%d_%H%M") + " UTC ***")        
+        currentTime = dt.strptime(HindCastDate, "%Y-%m-%d %H:%M") 
     else:
         currentTime = dt.utcnow()
-        print("*** Starting real-time run cycle at " + currentTime.strftime("%Y%m%d_%H%M") + " UTC ***")
 
     # Round down the current minutess to the nearest 30min increment in the past
     min30 = int(np.floor(currentTime.minute / 30.0) * 30)
     # Use the rounded down minutes as the timestamp for the current time step
     currentTime = currentTime.replace(minute=min30, second=0, microsecond=0)
+    
+    if HindCastMode == True:
+        print("*** Starting hindcast run cycle at " + currentTime.strftime("%Y-%m-%d_%H:%M") + " UTC ***")        
+    else:
+        print("*** Starting real-time run cycle at " + currentTime.strftime("%Y-%m-%d_%H:%M") + " UTC ***")
 
     # Configure the system to run once every hour
     # Start the simulation using QPEs from 4-6 hours ago
@@ -595,7 +631,7 @@ def main(args):
     systemWarmEndTime = currentTime - timedelta(minutes=240)
     # Setup the simulation forecast starting point as the current timestemp
     systemStartLRTime = currentTime
-    # Run simulation for 360min (6 hours) into the future using the 72 QPFs (5minx72=6h)
+    # Run simulation for 360min (6 hours) into the future
     systemEndTime = currentTime + timedelta(minutes=360)
 
     # Configure failure-tolerance for missing QPE timesteps
@@ -605,24 +641,32 @@ def main(args):
     try:
         # Clean up old QPE files from GeoTIFF archive (older than 6 hours)
         #      Keep latest QPFs
+        print("***_________Cleaning old QPE files from the precip folder_________***")
         cleanup_precip(currentTime, failTime, precipFolder,qpf_store_path)
+        print("***_________Precip folder cleaning completed_________***")
         # Get the necessary QPEs and QPFs for the current time step into the GeoTIFF precip folder
         # store whether there's a QPE gap or the QPEs for the current time step is missing
+        print(' ')
+        print("***_________Retrieving IMERG files_________***")
         get_new_precip(currentTime, server, precipFolder, email)
+        print("***_________QPE's are complete in precip folder_________***")
+        print(' ')
         #Produce ML qpf from currentTime - 4h till currentime +2h
+        print(f"***_________Generating the nowcast from {currentTime - timedelta(hours=3.5)} to {currentTime + timedelta(hours=2.5)}_________***")
         run_ml_nowcast(currentTime,precipFolder)
-        print("*** Al QPE + QPF files are ready in local folder ***")
+        print("***_________Al QPE + QPF files are ready in local folder_________***")
     except:
         print("There was a problem with the QPE routines. Ignoring errors and continuing with execution")
-#%%    
+           
     #copying precip files into folder 
-    rename_ef5_precip(precipEF5Folder,precipFolder)   
-                
+    rename_ef5_precip(precipEF5Folder,precipFolder)       
     # Check to see if all the states for the current time step are available: ["crest_SM", "kwr_IR", "kwr_pCQ", "kwr_pOQ"]
     # If not then search for previous ones
+    print(" ")
+    print("***_________Preparing the Ef5 run_________***")
     foundAllStates = False
     realSystemStartTime = systemStartTime
-    print("*** Looking for states ***")
+    print("    Looking for states.")
     # Iterate over all necessary states and check if they're available for the current run
     # Only go back up to 6 hours, in 30min decrements
     while foundAllStates == False and realSystemStartTime > failTime:
@@ -643,7 +687,7 @@ def main(args):
             message = 'Missing states from ' + realSystemStartTime.strftime("%Y%m%d_%H%M") + ' to ' + systemStartTime.strftime("%Y%m%d_%H%M") + '. Starting model with cold states.'    
         # for recipient in alert_recipients:
         #         send_mail(smtp_server, smtp_port, account_address, account_password, alert_sender, recipient, subject, message)
-        print('No states found!!!')
+        print('    No states found!!!')
         realSystemStartTime = systemStartTime
     # If notifications are enabled, notify if no immediately anteceding states existed,
     # and had to use old states.
@@ -655,9 +699,8 @@ def main(args):
                send_mail(smtp_server, smtp_port, account_address, account_password, alert_sender, recipient, subject, message)
         print('Had to use older states')
     
-    print("Running simulation system for: " + currentTime.strftime("%Y%m%d_%H%M"))
-    print("Simulations start at: " + realSystemStartTime.strftime("%Y%m%d_%H%M") + " and ends at: " + systemEndTime.strftime("%Y%m%d_%H%M") + " while state update ends at: " + systemStateEndTime.strftime("%Y%m%d_%H%M"))
-
+    print(" ")
+    print("    Writting control file.")
     # Clean up "Hot" folders
     # Delete the previously existing "Hot" folders, ignore error if it doesn't exist
     rmtree(tmpOutput, ignore_errors=1)
@@ -692,6 +735,12 @@ def main(args):
             if is_non_zero_file(assimilationPath + log) == True:
                 remove(assimilationPath + log)
     """
+    
+    print("    Running simulation system for: " + currentTime.strftime("%Y%m%d_%H%M"))
+    print("    Simulations start at: " + realSystemStartTime.strftime("%Y%m%d_%H%M") + " and ends at: " + systemEndTime.strftime("%Y%m%d_%H%M") + " while state update ends at: " + systemStateEndTime.strftime("%Y%m%d_%H%M"))
+    print("***_________EF5 is ready to be run_________***")
+    print(" ")
+    
     # Run EF5 simulations
     # Prepare function arguments for multiprocess invovation of run_EF5()
     #arguments = [ef5Path, tmpOutput, controlFile, "ef5.log"]
