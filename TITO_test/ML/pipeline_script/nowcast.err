@@ -1,0 +1,10 @@
+Traceback (most recent call last):
+  File "m_tif2h5py.py", line 6, in <module>
+    import h5py
+ImportError: No module named h5py
+  File "m_nowcasting.py", line 52
+SyntaxError: Non-ASCII character '\xe2' in file m_nowcasting.py on line 52, but no encoding declared; see http://python.org/dev/peps/pep-0263/ for details
+  File "m_h5py2tif.py", line 65
+    gridOutName = os.path.join(tif_directory, f"imerg_{dt_str}.tif")
+                                                                  ^
+SyntaxError: invalid syntax
