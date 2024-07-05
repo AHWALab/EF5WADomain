@@ -3,7 +3,7 @@ West Africa real-time model/subdomain execution script
 Contributors:
 Vanessa Robledo - vrobledodelgado@uiowa.edu
 Humberto Vergara - humberto-vergaraarrieta@uiowa.edu
-V.1.0 - February 01, 2024
+V.3.0 - July 05, 2024
 
 This script consolidates execution routines in a single script, while
 ingesting a "configuration file" from where a given model can be specified for a
@@ -339,10 +339,10 @@ def cleanup_precip(current_datetime, failTime, precipFolder, qpf_store_path):
     #print(qpes)
 
     # Delete all QPE files older than max_timestamp (-6h)
-    print("    Deleting all QPE files older than Fail Time: ", failTime)
+    print("    Deleting all QPE files older than Fail Time: ", failTime - timedelta(hours=3.5))
     for qpe in qpes:
         geotiff_datetime = get_geotiff_datetime(precipFolder + qpe)
-        if(geotiff_datetime < failTime):
+        if(geotiff_datetime < failTime - timedelta(hours=3.5)):
             os.remove(precipFolder + qpe)
 
     # Delete all QPF files older than the current_datetime and copy them in the store path
@@ -405,10 +405,10 @@ def get_gpm_files(precipFolder,initial_timestamp, final_timestamp, ppt_server_pa
     file_suffix = '.V07B.30min.tif'
     
     # Domain coordinates (This part must be changed)
-    xmin = -180
-    xmax = 180
-    ymin = -90
-    ymax = 90
+    xmin = -21.4
+    xmax = 30.4
+    ymin = -2.9
+    ymax = 33.1
     
     final_date = final_timestamp + timedelta(minutes=30)
     delta_time = datetime.timedelta(minutes=30)
@@ -642,7 +642,7 @@ def get_new_precip(current_timestamp, ppt_server_path, precipFolder, email, Hind
         print("    No '.tif' files found in the precip folder.") 
         #If there is no files in folder, Download the entire chuck of dates 
         #from failtime (current time - 6h) to Nowcast time (current time -4h) 
-        initial_time = current_timestamp - timedelta(hours = 6) #sames as fail time
+        initial_time = current_timestamp - timedelta(hours = 9.5) #sames as fail time
         #Downloading imerg Files
         nowcast_older_server = nowcast_older - timedelta(minutes=60)
         initial_time_server = initial_time - timedelta(minutes=30)
@@ -652,12 +652,16 @@ def get_new_precip(current_timestamp, ppt_server_path, precipFolder, email, Hind
         #if some file is missing
         missing_dates = []
         next_timestamp = initial_time + timedelta(minutes=30)
+
+        #retrieving gpm files for the last file that it is supposed to be downloaded.
+        date_in_server = nowcast_older- timedelta(minutes=30)
+        server_files = retrieve_imerg_files(ppt_server_path, email, HindCastMode, date_in_server)
+
         while next_timestamp < nowcast_older:
             missing_dates.append(next_timestamp)
             next_timestamp += timedelta(minutes=30)
             
-            for date in missing_dates: 
-                server_files = retrieve_imerg_files(ppt_server_path, email, HindCastMode, date)    
+            for date in missing_dates:     
                 timestamps = [extract_timestamp(file) for file in server_files]
                 
                 if date not in timestamps:
@@ -846,17 +850,23 @@ def run_EF5(ef5Path, hot_folder_path, control_file, log_file):
 
 def rename_ef5_precip(precipEF5Folder, precipFolder):    
     for filename in os.listdir(precipFolder):
-        source_file = os.path.join(precipFolder, filename)
-        dest_file = os.path.join(precipEF5Folder, filename)
-        shutil.copy(source_file, dest_file)
+        if filename.endswith('.tif'):
+            source_file = os.path.join(precipFolder, filename)
+            dest_file = os.path.join(precipEF5Folder, filename)
+            try:
+                shutil.copy(source_file, dest_file)
+            except PermissionError as e:
+                print(f"PermissionError: {e}")
     
-    # Luego renombramos los archivos en precipEF5Folder que contengan 'qpf'
     for filename2 in os.listdir(precipEF5Folder):
-        if 'qpf' in filename:
+        if 'qpf' in filename2 and filename2.endswith('.tif'):
             new_filename = filename2.replace('qpf', 'qpe')
             source_file = os.path.join(precipEF5Folder, filename2)
             dest_file = os.path.join(precipEF5Folder, new_filename)
-            os.rename(source_file, dest_file)
+            try:
+                os.rename(source_file, dest_file)
+            except PermissionError as e:
+                print(f"PermissionError: {e}")
              
 """
 Run the main() function when invoked as a script

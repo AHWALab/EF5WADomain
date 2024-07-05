@@ -41,7 +41,7 @@ out_seq_length = 12
 img_height = 360
 img_width = 516
 # system
-use_gpu = True
+use_gpu = False
 DataParallel = False
 distributed = False
 num_workers = 4
