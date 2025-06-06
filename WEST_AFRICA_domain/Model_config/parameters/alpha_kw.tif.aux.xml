@@ -1,0 +1,16 @@
+<PAMDataset>
+  <Metadata>
+    <MDI key="ALGORITHM">GAMLSS</MDI>
+    <MDI key="CREATION_DATE">2023-06-19</MDI>
+  </Metadata>
+  <PAMRasterBand band="1">
+    <Metadata>
+      <MDI key="STATISTICS_APPROXIMATE">YES</MDI>
+      <MDI key="STATISTICS_MAXIMUM">14.515699386597</MDI>
+      <MDI key="STATISTICS_MEAN">3.5357146496446</MDI>
+      <MDI key="STATISTICS_MINIMUM">2.6631062030792</MDI>
+      <MDI key="STATISTICS_STDDEV">0.49802518740331</MDI>
+      <MDI key="STATISTICS_VALID_PERCENT">9.151</MDI>
+    </Metadata>
+  </PAMRasterBand>
+</PAMDataset>

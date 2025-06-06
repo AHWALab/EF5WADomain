@@ -1,16 +1,22 @@
-# EF5 West Africa Domain
+# Flash Flood Forecasting System for West Africa and Ghana
 
-Configuration of EF5 computational domain for West Africa. This repository includes all basic files (DEM and its derivatives), parameters for CREST and Kinematic Wave models, and control file to run simulations over selected basins in West Africa.
+This repository contains EF5 computational domain for West Africa and Ghana, documentation, data, and results from the research work done for NASA's SERVIR-West Africa project on developing a flash flood forecasting system in the West Africa domain (WA) (1km resolution) and Ghana domain (GH) (1km and 90m resolution).
+
 
 ## Contents
 
-1) Parameters for CREST and Kinematic Wave models were estimated using the a-priori estimation methods described in Vergara et al. (2016) and Clark et al. (2017).
+**1) GHANA_domain:**
+- **GIS**: GIS files used to configure the study region, also flash flood event locations.
+- **DATA_obs**: Observational streamflow data from different entities.
+- **Model_config**: Datasets needed to run Ghana high resolution model (90m), such as basic grid files, parameters, and forcings. This folder also contains instructions and inputs to calculate CREST and KW parameters.
+- **Results:**: Calibration baseline and Seasonal Calibration for Ghana model at 90m and 1km.
 
-2) Includes climatological estimates of Potential EvapoTranspiration (PET) from the Food and Agriculture Organization (FAO), and a sample of IMERG Early Run Version 6 precipitation estimates.
+**2) WEST_AFRICA_domain:**
+- **Data_obs:** Observational streamflow data from different entities.
+- **GIS:** GIS files used to configure the study region such as shapefile of countries included in the EF5 domain and raster with a mask of major basins.
+- **Model_config:** All basic files (DEM and its derivatives), parameters for CREST and Kinematic Wave models, and control file to run simulations over selected basins in West Africa.
+- **Results:** Baseline simulations perfomed over the entire domain. Pre-computed outputs from a simulation based on this set-up are included.
 
-3) Pre-computed outputs from a simulation based on this set-up are included.
-
-4) Shapefile of countries included in the EF5 domain and raster with a mask of major basins.
 
 ## References
 

@@ -1,0 +1,85 @@
+[Basic]
+DEM=basic/dem.tif
+DDM=basic/ddm.tif
+FAM=basic/fam.tif
+PROJ=geographic
+ESRIDDM=true SelfFAM=false
+
+[PrecipForcing IMERG]
+TYPE=TIF
+UNIT=mm/30u
+FREQ=30u
+LOC=/vol_efthymios/NFS07/Data/aj1045/imerg/early_run
+NAME=imerg.YYYYMMDDHHUU.30minAccum.tif 
+
+[PETForcing CLIMO]
+LOC=pet/
+FREQ=1m
+UNIT=mm/d
+NAME=PET.MM.tif 
+TYPE=TIF
+
+#---Start Gauge-Basin Block
+# - these are the GRDC daily gauge stations for the WA domain (details + coordinates from the EF5 basin raster file in excel) 
+[Gauge 1234150] lon=2.09 lat=13.52 [Gauge 1234130] lon=1.6167 lat=13.7333 [Gauge 1237500] lon=12.604 lat=13.2707 [Gauge 1320160] lon=-10.21152 lat=8.00272 [Gauge 1320100] lon=-11.143 lat=7.328 [Gauge 1320150] lon=-10.078 lat=8.278 [Gauge 1321880] lon=-10.88 lat=7.067 [Gauge 1322840] lon=-9.818731 lat=7.202586 [Gauge 1322880] lon=-10.36175 lat=6.90211 [Gauge 1323550] lon=-9.526 lat=6.466 [Gauge 1323580] lon=-9.87 lat=6.084 [Gauge 1324580] lon=-9.319 lat=5.617 [Gauge 1234090] lon=0.9873 lat=14.6125 [Gauge 1617800] lon=-12.52 lat=9.87 [Gauge 1616700] lon=-12.8956 lat=10.504 [Gauge 1619600] lon=-10.33 lat=8.5 [Gauge 1622500] lon=-9.0623 lat=8.0623 [Gauge 1634500] lon=-9.287 lat=10.3705 [Gauge 1634560] lon=-9.0207 lat=9.2624 [Gauge 1617900] lon=-12.444667 lat=11.091917 [Gauge 1733600] lon=2.45 lat=6.9 [Gauge 1732100] lon=1.60625 lat=6.90208 [Gauge 1526200] lon=-2.1167 lat=5.45 [Gauge 1531050] lon=-2.9372 lat=10.629 [Gauge 1531100] lon=-2.0333 lat=8.15 [Gauge 1531300] lon=-0.8833 lat=7.9833 [Gauge 1531420] lon=-1.2873 lat=10.2456 [Gauge 1531430] lon=-1.3289 lat=10.3372 [Gauge 1531450] lon=-1.08 lat=9.7 [Gauge 1531550] lon=-0.8455 lat=10.5787 [Gauge 1531600] lon=-0.379 lat=10.9792 [Gauge 1531650] lon=-0.6167 lat=10.8667 [Gauge 1531800] lon=0.2461 lat=9.2951 [Gauge 1526801] lon=-0.5958 lat=5.387 [Gauge 1526300] lon=-1.6333 lat=5.1667 [Gauge 1837401] lon=10.03085 lat=12.44065 [Gauge 1834101] lon=6.7667 lat=7.8 [Gauge 1134100] lon=-7.55 lat=12.8667 [Gauge 1837420] lon=9.918306 lat=12.26075 [Gauge 1837106] lon=11.9705 lat=12.989944 [Gauge 1837107] lon=11.045444 lat=12.861889 [Gauge 1837451] lon=8.072222 lat=11.741666 [Gauge 1837200] lon=11.50725 lat=12.493528 [Gauge 1837410] lon=8.834067 lat=11.79715 [Gauge 1837560] lon=10.303883 lat=12.636467 [Gauge 1134700] lon=-3.3833 lat=16.2667 [Gauge 1634400] lon=-9.8667 lat=10.65 [Gauge 1834110] lon=4.1207 lat=11.3795 [Gauge 1835900] lon=9.746 lat=8.1957 [Gauge 1234201] lon=2.6167 lat=12.5833 [Gauge 1434820] lon=-6.3623 lat=9.8789 [Gauge 1634200] lon=-10.7456 lat=10.0375 [Gauge 1134030] lon=-8.6667 lat=11.6833 [Gauge 1134250] lon=-6.0534 lat=13.7121 [Gauge 1134300] lon=-5.9036 lat=13.2124 [Gauge 1134500] lon=-4.204 lat=14.5375 [Gauge 1134730] lon=-3.0333 lat=16.6666 [Gauge 1134900] lon=0.5 lat=15.6667 [Gauge 1734500] lon=3.3874 lat=11.887 
+
+[Basin 0]
+# - used to select which gauge stations will be run in the simulation
+#GAUGE= 1234150
+GAUGE=1234150 GAUGE=1234130 GAUGE=1237500 GAUGE=1320160 GAUGE=1320100 GAUGE=1320150 GAUGE=1321880 
+GAUGE=1322840 GAUGE=1322880 GAUGE=1323550 GAUGE=1323580 GAUGE=1324580 GAUGE=1234090 GAUGE=1617800 
+GAUGE=1616700 GAUGE=1619600 GAUGE=1622500 GAUGE=1634500 GAUGE=1634560 GAUGE=1617900 GAUGE=1733600 
+GAUGE=1732100 GAUGE=1526200 GAUGE=1531050 GAUGE=1531100 GAUGE=1531300 GAUGE=1531420 GAUGE=1531430 
+GAUGE=1531450 GAUGE=1531550 GAUGE=1531600 GAUGE=1531650 GAUGE=1531800 GAUGE=1526801 GAUGE=1526300 
+GAUGE=1837401 GAUGE=1834101 GAUGE=1134100 GAUGE=1837420 GAUGE=1837106 GAUGE=1837107 GAUGE=1837451 
+GAUGE=1837200 GAUGE=1837410 GAUGE=1837560 GAUGE=1134700 GAUGE=1634400 GAUGE=1834110 GAUGE=1835900 
+GAUGE=1234201 GAUGE=1434820 GAUGE=1634200 GAUGE=1134030 GAUGE=1134250 GAUGE=1134300 GAUGE=1134500 
+GAUGE=1134730 GAUGE=1134900 GAUGE=1734500 
+#---End Gauge-Basin Block
+
+[CrestParamSet MyCRESTPAR]
+wm_grid=parameters/wm_crest.tif
+b_grid=parameters/b_crest.tif
+im_grid=parameters/im_crest.tif
+fc_grid=parameters/fc_crest.tif
+gauge=1234150
+wm=1.00
+b=1.0
+im=0.01
+ke=1.0
+fc=1.00
+iwu=0.0
+
+[kwparamset MyKWPAR]
+alpha_grid=parameters/alpha_kw.tif
+beta_grid=parameters/beta_kw.tif
+alpha0_grid=parameters/alpha0_kw.tif
+under_grid=parameters/fc_crest.tif
+gauge=1234150
+alpha=1.0
+alpha0=1.0
+beta=1.0
+under=0.001
+leaki=0.03
+th=12.0
+isu=0.0
+
+[Task Simulation]
+STYLE=SIMU
+MODEL=crest
+ROUTING=KW
+BASIN=0
+PRECIP=IMERG
+PET=CLIMO
+OUTPUT=outputs/timeseries/
+defaultparamsgauge=1234150
+PARAM_SET=MyCRESTPAR
+ROUTING_PARAM_Set=MyKWPAR
+TIMESTEP=30u
+TIME_BEGIN=200006010000
+TIME_WARMEND=200101010000
+TIME_END=2023060100000
+
+[Execute]
+task=Simulation
+

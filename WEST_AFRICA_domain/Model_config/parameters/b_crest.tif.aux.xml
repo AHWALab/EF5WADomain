@@ -1,0 +1,16 @@
+<PAMDataset>
+  <Metadata>
+    <MDI key="ALGORITHM">LookUpTable</MDI>
+    <MDI key="CREATION_DATE">2023-05-05</MDI>
+  </Metadata>
+  <PAMRasterBand band="1">
+    <Metadata>
+      <MDI key="STATISTICS_APPROXIMATE">YES</MDI>
+      <MDI key="STATISTICS_MAXIMUM">11.550000190735</MDI>
+      <MDI key="STATISTICS_MEAN">5.6506771253924</MDI>
+      <MDI key="STATISTICS_MINIMUM">2.789999961853</MDI>
+      <MDI key="STATISTICS_STDDEV">2.261901197858</MDI>
+      <MDI key="STATISTICS_VALID_PERCENT">100</MDI>
+    </Metadata>
+  </PAMRasterBand>
+</PAMDataset>

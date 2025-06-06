@@ -1,0 +1,16 @@
+<PAMDataset>
+  <Metadata>
+    <MDI key="ALGORITHM">Manning's Equation</MDI>
+    <MDI key="CREATION_DATE">2023-06-19</MDI>
+  </Metadata>
+  <PAMRasterBand band="1">
+    <Metadata>
+      <MDI key="STATISTICS_APPROXIMATE">YES</MDI>
+      <MDI key="STATISTICS_MAXIMUM">2.4139838218689</MDI>
+      <MDI key="STATISTICS_MEAN">0.7633643844216</MDI>
+      <MDI key="STATISTICS_MINIMUM">0.052769403904676</MDI>
+      <MDI key="STATISTICS_STDDEV">0.58873500503854</MDI>
+      <MDI key="STATISTICS_VALID_PERCENT">56.5</MDI>
+    </Metadata>
+  </PAMRasterBand>
+</PAMDataset>
