@@ -8,7 +8,7 @@ This repository contains EF5 computational domain for West Africa and Ghana, doc
 **1) GHANA_domain:**
 - **GIS**: GIS files used to configure the study region, also flash flood event locations.
 - **DATA_obs**: Observational streamflow data from different entities.
-- **Model_config**: Datasets needed to run Ghana high resolution model (90m), such as basic grid files, parameters, and forcings. 
+- **Model_config**: Datasets needed to run Ghana high resolution model (90m), such as basic grid files, parameters, and forcings. The kinematic wave parameters are not available in this repository because their size exceeds GitHub's upload limit. Please contact vanessa-robledodelgado@uiowa.edu to request them.
 - **Results:**: Calibration baseline and Seasonal Calibration for Ghana model at 90m and 1km.
 
 **2) WEST_AFRICA_domain:**
@@ -23,3 +23,6 @@ This repository contains EF5 computational domain for West Africa and Ghana, doc
 Vergara, H., Kirstetter, P.E., Gourley, J.J., Flamig, Z.L., Hong, Y., Arthur, A. and Kolar, R., 2016. Estimating a-priori kinematic wave model parameters based on regionalization for flash flood forecasting in the Conterminous United States. Journal of Hydrology, 541, pp.421-433.
 
 Clark, R.A., Flamig, Z.L., Vergara, H., Hong, Y., Gourley, J.J., Mandl, D.J., Frye, S., Handy, M. and Patterson, M., 2017. Hydrological modeling and capacity building in the Republic of Namibia. Bulletin of the American Meteorological Society, 98(8), pp.1697-1715.
+
+## Contact
+For any questions, contact Vanessa Robledo (vanessa-robledodelgado@uiowa.edu) or Humberto Vergara (humerto-vergaraarrieta@uiowa.edu)
