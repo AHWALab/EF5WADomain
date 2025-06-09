@@ -8,7 +8,7 @@ This repository contains EF5 computational domain for West Africa and Ghana, doc
 **1) GHANA_domain:**
 - **GIS**: GIS files used to configure the study region, also flash flood event locations.
 - **DATA_obs**: Observational streamflow data from different entities.
-- **Model_config**: Datasets needed to run Ghana high resolution model (90m), such as basic grid files, parameters, and forcings. This folder also contains instructions and inputs to calculate CREST and KW parameters.
+- **Model_config**: Datasets needed to run Ghana high resolution model (90m), such as basic grid files, parameters, and forcings. 
 - **Results:**: Calibration baseline and Seasonal Calibration for Ghana model at 90m and 1km.
 
 **2) WEST_AFRICA_domain:**
