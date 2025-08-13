@@ -33,4 +33,4 @@ Africa with Satellite Observations and Precipitation Forecasts. In AGU Fall Meet
 - Nikolopoulos, E., Ali, A., Amponsah, W., Anagnostopoulos, G., Aravamudan, A., Gourley, J. J., Robledo V., ... & Zhang, X. (2024). Advancing Flash Flood Forecasting Capabilities in West Africa with Machine Learning and Satellite Observations. In 104th AMS Annual Meeting. AMS.
 
 ## Contact
-For any questions, contact Vanessa Robledo (vanessa-robledodelgado@uiowa.edu) or Humberto Vergara (humerto-vergaraarrieta@uiowa.edu)
+For any questions, contact Vanessa Robledo (vanessa-robledodelgado@uiowa.edu) or Humberto Vergara (humberto-vergaraarrieta@uiowa.edu)
