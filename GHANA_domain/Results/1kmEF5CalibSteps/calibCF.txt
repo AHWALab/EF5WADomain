@@ -1,0 +1,113 @@
+[Basic]
+DEM=/Shared/lss_hvergaraarrieta/SERVIR/WestAfrica/basic/dem.tif
+DDM=/Shared/lss_hvergaraarrieta/SERVIR/WestAfrica/basic/ddm.tif
+FAM=/Shared/lss_hvergaraarrieta/SERVIR/WestAfrica/basic/fam.tif
+
+PROJ=geographic
+ESRIDDM=true
+SelfFAM=true
+
+[PrecipForcing IMERG]
+TYPE=TIF
+UNIT=mm/h
+FREQ=30u
+LOC=/Shared/lss_hvergaraarrieta/data/IMERG/V07/finalEF5
+NAME=imerg.YYYYMMDDHHUU.tif
+
+[PETForcing CLIMO]
+LOC=/Shared/lss_hvergaraarrieta/data/PET/FAO/ERA5_Adjusted/
+FREQ=1m
+UNIT=mm/d
+NAME=adjPET.MM.tif
+TYPE=TIF
+
+[Gauge 1531420]
+lat=10.24378 lon=-1.28783
+OBS=/Users/nammehta/EF5/data/discharge_cms_1531420_ef5_format_1d.csv
+OUTPUTTS=TRUE
+
+[Basin WestAfr]
+GAUGE=1531420
+
+[CrestParamSet WestAfrCREST]
+wm_grid=/Shared/lss_hvergaraarrieta/SERVIR/WestAfrica/parameters/wm_crest.tif
+b_grid=/Shared/lss_hvergaraarrieta/SERVIR/WestAfrica/parameters/b_crest.tif
+im_grid=/Shared/lss_hvergaraarrieta/SERVIR/WestAfrica/parameters/im_crest.tif
+fc_grid=/Shared/lss_hvergaraarrieta/SERVIR/WestAfrica/parameters/fc_crest.tif
+gauge=1531420
+wm=1.782799
+b=0.260276
+im=0.006481
+ke=1.495854
+fc=1.495130
+iwu=8.632444
+
+[kwparamset WestAfrKW]
+alpha_grid=/Shared/lss_hvergaraarrieta/SERVIR/WestAfrica/parameters/alpha_kw.tif
+beta_grid=/Shared/lss_hvergaraarrieta/SERVIR/WestAfrica/parameters/beta_kw.tif
+alpha0_grid=/Shared/lss_hvergaraarrieta/SERVIR/WestAfrica/parameters/alpha0_kw.tif
+under_grid=/Shared/lss_hvergaraarrieta/SERVIR/WestAfrica/parameters/fc_crest.tif
+
+gauge=1531420
+under=0.000328
+leaki=0.011219
+th=12.000964
+isu=0.000024
+alpha=1.313428
+beta=0.616303
+alpha0=1.006969
+
+[CrestCaliParams WestAfrCRESTCALI]
+gauge=1531420
+objective=mkge
+dream_ndraw=3000
+wm=0.8,1.8
+b=0.25,1.5
+im=0.001,0.015
+ke=0.6,1.5
+fc=0.8,1.5
+iwu=0,250.0
+ 
+[kwcaliparams WestAfrKWCALI]
+gauge=1531420
+under=0.0003,0.0015
+leaki=0.008,0.05
+th=12.0,12.001
+isu=0.0,0.0001
+alpha=0.8,1.5
+beta=0.5,1.4
+alpha0=0.6,1.4
+
+[Task SimuGage]
+STYLE=SIMU
+MODEL=CREST
+ROUTING=KW
+BASIN=WestAfr
+PRECIP=IMERG
+PET=CLIMO
+OUTPUT=/Users/nammehta/EF5/output/v10_Successful_calibration
+PARAM_SET=WestAfrCREST
+ROUTING_PARAM_Set=WestAfrKW
+TIMESTEP=30u
+TIME_BEGIN=200407010000
+TIME_END=200802010000
+
+[Task CaliGage]
+STYLE=CALI_DREAM
+MODEL=CREST
+ROUTING=KW
+BASIN=WestAfr
+PRECIP=IMERG
+PET=CLIMO
+OUTPUT=/Users/nammehta/EF5/output/v10_Successful_calibration
+PARAM_SET=WestAfrCREST
+ROUTING_PARAM_Set=WestAfrKW
+CALI_PARAM=WestAfrCRESTCALI
+ROUTING_CALI_PARAM=WestAfrKWCALI
+TIMESTEP=30u
+TIME_BEGIN=200407010000
+TIME_END=200602010000
+
+[Execute]
+#TASK=CaliGage
+TASK=SimuGage
